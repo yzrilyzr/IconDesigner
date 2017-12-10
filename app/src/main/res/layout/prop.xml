@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="300dp"
+	android:layout_height="wrap_content"
+	android:orientation="vertical">
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="名称"
+		android:layout_width="wrap_content"/>
+
+	<EditText
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:id="@+id/propEditText4"/>
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="附加信息"
+		android:layout_width="wrap_content"/>
+
+	<EditText
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:id="@+id/propEditText5"/>
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="宽"
+		android:layout_width="wrap_content"/>
+
+	<EditText
+		android:layout_height="wrap_content"
+		android:inputType="number"
+		android:layout_width="match_parent"
+		android:id="@+id/propEditText1"/>
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="高"
+		android:layout_width="wrap_content"/>
+
+	<EditText
+		android:layout_height="wrap_content"
+		android:inputType="number"
+		android:layout_width="match_parent"
+		android:id="@+id/propEditText2"/>
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="精度"
+		android:layout_width="wrap_content"/>
+
+	<EditText
+		android:layout_height="wrap_content"
+		android:inputType="numberDecimal"
+		android:layout_width="match_parent"
+		android:id="@+id/propEditText3"/>
+
+	<TextView
+		android:layout_height="wrap_content"
+		android:text="背景色"
+		android:layout_width="wrap_content"/>
+
+	<LinearLayout
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:orientation="horizontal"
+		android:gravity="center">
+
+		<ImageView
+			android:layout_height="40dp"
+			android:layout_width="wrap_content"
+			android:layout_weight="1.0"
+			android:layout_margin="5dp"
+			android:id="@+id/propImageView1"/>
+
+		<Button
+			android:layout_height="wrap_content"
+			android:text="选取颜色"
+			android:layout_width="wrap_content"
+			android:id="@+id/propButton1"/>
+
+		<Button
+			android:layout_height="wrap_content"
+			android:text="图片…"
+			android:layout_width="wrap_content"
+			android:id="@+id/propButton2"/>
+
+	</LinearLayout>
+
+	<LinearLayout
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:orientation="horizontal"
+		android:gravity="center">
+
+		<CheckBox
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:id="@+id/propCheckBox1"/>
+
+		<TextView
+			android:layout_height="wrap_content"
+			android:text="抗锯齿"
+			android:layout_width="wrap_content"
+			android:layout_weight="1.0"/>
+
+		<CheckBox
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:id="@+id/propCheckBox2"/>
+
+		<TextView
+			android:layout_height="wrap_content"
+			android:text="防抖动"
+			android:layout_width="wrap_content"
+			android:layout_weight="1.0"/>
+
+	</LinearLayout>
+
+</LinearLayout>
+

@@ -1,0 +1,59 @@
+package com.yzrilyzr.icondesigner;
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.view.MotionEvent;
+import android.view.inputmethod.InputMethodManager;
+
+public class Edit extends MView
+{
+	public String txt;
+	public boolean touch=false;
+	public Paint pa;
+	public int color=editcolor;
+	public boolean selected=false;
+	public Edit(float x,float y,float w,float h,String txt)
+	{
+		super(x+3,y+3,w-6,h-6);
+		this.txt=txt;
+		pa=new Paint(Paint.ANTI_ALIAS_FLAG);
+		pa.setTextSize(px(12));
+		pa.setStrokeWidth(px(2));
+	}
+	public void onDraw(Canvas c)
+	{
+		if(selected){
+			pa.setStyle(Paint.Style.STROKE);
+			pa.setColor(buttonselectedcolor);
+			c.drawRoundRect(this,px(5),px(5),pa);
+		}
+		pa.setColor(color);
+		pa.setStyle(Paint.Style.FILL);
+		//pa.setShadowLayer(px(1),0,px(3),shadowcolor);
+		c.drawRoundRect(this,px(5),px(5),pa);
+		//pa.setShadowLayer(0,0,0,0);
+		pa.setColor(0xff000000);
+		c.drawText(txt,left+px(3),(bottom+top)/2+pa.getTextSize()/2,pa);
+	}
+	@Override
+	public void onTouchEvent(MotionEvent k)
+	{
+		// TODO: Implement this method
+		int a=k.getAction();float x=k.getX(),y=k.getY();
+		if(a==MotionEvent.ACTION_DOWN&&contains(x,y))touch=true;
+		if(a==MotionEvent.ACTION_UP){
+			if(contains(x,y)&&touch){
+				main.curView=this;
+				main.setFocusableInTouchMode(true);
+				InputMethodManager imm = (InputMethodManager)ctx
+					.getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.showSoftInput(main,InputMethodManager.SHOW_IMPLICIT);
+			}
+			touch=false;
+		}
+	}
+	public interface Event
+	{
+		public abstract void e(Button b);
+	}
+}
