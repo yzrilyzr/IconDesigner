@@ -15,7 +15,11 @@ public class Menu extends MView
 		super(x-1,y-1,w+2,h+2);
 		paint=new Paint(Paint.ANTI_ALIAS_FLAG);
 		paint.setColor(menucolor);
-		if(m!=null)for(MView v:m)
+		addView(m);
+	}
+	public void addView(MView... m){
+		if(m!=null)
+			for(MView v:m)
 				if(v!=null)
 				{
 					views.add(v);

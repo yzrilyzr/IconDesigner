@@ -90,7 +90,6 @@ public class Main extends SurfaceView implements Callback
 	}
 	class RenderThread extends Thread
 	{
-		private Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
 		private int alpha=300;
 		private Bitmap icon=BitmapFactory.decodeResource(getResources(),R.drawable.test);
 		float mdeltax,mdeltay,mscale;
@@ -98,6 +97,7 @@ public class Main extends SurfaceView implements Callback
 		public void run()
 		{
 			setName("Render");
+			Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
 			paint.setTextSize(px(18));
 			while(true)
 				try
@@ -105,7 +105,7 @@ public class Main extends SurfaceView implements Callback
 					Canvas c=holder.lockCanvas();
 					if(c!=null)
 					{
-						draw(c);
+						draw(c,paint);
 						holder.unlockCanvasAndPost(c);
 					}
 					Thread.sleep(1);
@@ -117,14 +117,14 @@ public class Main extends SurfaceView implements Callback
 					break;
 				}
 		}
-		public void draw(Canvas c)
+		public void draw(Canvas c,Paint p)
 		{
 			lock();
 			clear(c);
-			vec(c);
-			net(c);
-			view(c);
-			load(c);
+			vec(c,p);
+			net(c,p);
+			view(c,p);
+			load(c,p);
 		}
 		public void lock()
 		{
@@ -136,7 +136,7 @@ public class Main extends SurfaceView implements Callback
 		{
 			canvas.drawColor(0xff666666);
 		}
-		private void vec(Canvas canvas)
+		private void vec(Canvas canvas,Paint paint)
 		{
 			Matrix m=new Matrix();
 			m.postTranslate(mdeltax,mdeltay);
@@ -148,7 +148,7 @@ public class Main extends SurfaceView implements Callback
 				canvas.drawBitmap(vec.front,m,paint);
 			}
 		}
-		private void view(Canvas canvas)
+		private void view(Canvas canvas,Paint paint)
 		{
 			paint.setStyle(Paint.Style.FILL);
 			paint.setColor(0xff000000);
@@ -159,7 +159,7 @@ public class Main extends SurfaceView implements Callback
 			paint.setTextAlign(Paint.Align.CENTER);
 			canvas.drawText(info.toString(),getWidth()/2,getHeight()/2,paint);
 		}
-		private void load(Canvas canvas)
+		private void load(Canvas canvas,Paint paint)
 		{
 			if(alpha>0)
 			{
@@ -180,7 +180,7 @@ public class Main extends SurfaceView implements Callback
 				canvas.restoreToCount(a);
 			}
 		}
-		private void net(Canvas canvas)
+		private void net(Canvas canvas,Paint paint)
 		{
 			if(useNet)
 			{
@@ -260,23 +260,24 @@ public class Main extends SurfaceView implements Callback
 					int k=0;
 					for(Shape s:vec.shapes)
 					{
-						m.views.add(new ShapePreview(bs,0,bs*7,bs*2,k++,s,new Button.Event(){
-											@Override
-											public void e(Button b)
-											{
-												tmpShape=((ShapePreview)b).sh;
-												colorShape.set(tmpShape);
-												long w=tmpShape.flag;
-												w|=Shape.TYPE.ALL;
-												w-=Shape.TYPE.ALL;
-												w=tmpShape.flag-w;
-												w/=Shape.TYPE.RECT;
-												int h=0;
-												while((w/=2l)>0)h++;
-												me[h].show=true;
-												me[19].show=false;
-											}
-										}));
+						m.addView(new ShapePreview(bs,0,bs*7,bs*2,k++,s,new Button.Event(){
+										  @Override
+										  public void e(Button b)
+										  {
+											  for(int j=0;j<9;j++)me[j].show=false;
+											  tmpShape=((ShapePreview)b).sh;
+											  colorShape.set(tmpShape);
+											  long w=tmpShape.flag;
+											  w|=Shape.TYPE.ALL;
+											  w-=Shape.TYPE.ALL;
+											  w=tmpShape.flag-w;
+											  w/=Shape.TYPE.RECT;
+											  int h=0;
+											  while((w/=2l)>0)h++;
+											  showMenu(me[h]);
+											  me[19].show=false;
+										  }
+									  }));
 					}
 					m.measure();
 				}
@@ -380,7 +381,7 @@ public class Main extends SurfaceView implements Callback
 						});
 					if(ffs.isFile())tb.color=0xff10e0ff;
 					else tb.color=0xffffe020;
-					m.views.add(tb);
+					m.addView(tb);
 				}
 				m.measure();
 			}
@@ -432,7 +433,7 @@ public class Main extends SurfaceView implements Callback
 									else if(i<9)tmpShape.setFlag(Shape.TEXT.DEFAULT_TYPE*(long)Math.pow(2,i-4),Shape.TEXT.ALL_TYPEFACE);
 									else if(i>8)tmpShape.setFlag(Shape.TEXT.LEFT*(long)Math.pow(2,i-9),Shape.TEXT.ALL_ALIGN);
 								}
-								else if(tmpShape.hasFlag(Shape.TYPE.PATH)&&i<6)
+								else if(tmpShape.hasFlag(Shape.TYPE.PATH)&&i<7)
 								{
 									if(i==0)pointIndex--;
 									else if(i==1)pointIndex++;
@@ -449,6 +450,7 @@ public class Main extends SurfaceView implements Callback
 									if(pointIndex>tmpShape.pts.size()-1)pointIndex=tmpShape.pts.size()-1;
 									if(pointIndex<tmpShape.pts.size()&&pointIndex>0)
 										tmpPoint=tmpShape.pts.get(pointIndex);
+									((Button)m.views.get(6)).txt=pointIndex+"";
 								}
 								else
 								{
@@ -494,6 +496,64 @@ public class Main extends SurfaceView implements Callback
 										}
 										catch(Throwable e)
 										{}
+									}
+								}
+								else if(j==13)
+								{
+									if(i>1&&i<5)tmpShape.setFlag(Shape.STROKE.BUTT*(long)Math.pow(2,i-2),Shape.STROKE.ALL_CAP);
+									else if(i>4)tmpShape.setFlag(Shape.STROKE.ROUND_JOIN*(long)Math.pow(2,i-5),Shape.STROKE.ALL_JOIN);
+								}
+								else if(j==15)
+								{
+									if(i==0)
+									{
+										int index=vec.shapes.indexOf(tmpShape);
+										if(index!=-1)
+										{
+											Shape sh=vec.shapes.get(index);
+											Shape sh2=new Shape(sh.flag);
+											sh2.pts.clear();
+											for(Point p:sh.pts)
+												sh2.pts.add(new Point(p));
+											int k=0;
+											for(int ii:sh.par)
+												sh2.par[k++]=ii;
+											sh2.flag=sh.flag;
+											sh2.txt=sh.txt;
+											vec.shapes.add(index,sh2);
+										}
+									}
+									else if(i==1)
+									{
+										int index=vec.shapes.indexOf(tmpShape);
+										if(index!=-1)
+										{
+											vec.shapes.remove(index);
+											tmpShape=null;
+											for(int jj=0;jj<9;jj++)me[jj].show=false;
+										}
+									}
+									else if(i==2);
+									else if(i==3);
+									if(i==4)
+									{
+										int index=vec.shapes.indexOf(tmpShape);
+										if(index!=-1)
+										{
+											Shape sh=vec.shapes.remove(index);
+											if(--index<0)index=0;
+											vec.shapes.add(index,sh);
+										}
+									}
+									else if(i==5)
+									{
+										int index=vec.shapes.indexOf(tmpShape);
+										if(index!=-1)
+										{
+											Shape sh=vec.shapes.remove(index);
+											if(++index>vec.shapes.size())index=vec.shapes.size();
+											vec.shapes.add(index,sh);
+										}
 									}
 								}
 								else if(j==25)
@@ -585,14 +645,16 @@ public class Main extends SurfaceView implements Callback
 								{
 									tmpShape.pts.get(1).x=(int)(f*100);
 								}
-								else if(j==5&&i==7&&tmpShape.hasFlag(Shape.TYPE.PATH))
+								else if(j==5&&i==8&&tmpShape.hasFlag(Shape.TYPE.PATH))
 								{
 									tmpShape.pts.get(0).y=(int)(f*100);
 								}
-								else if(j==15)
+								else if(j==13)
 								{
-									colorShape.par[3]=(int)(f*100);
+									if(i==0)colorShape.par[3]=(int)(f*100);
+									else if(i==1)colorShape.par[2]=(int)(f*100);
 									setTmpShape();
+
 								}
 							}
 						}
@@ -624,7 +686,7 @@ public class Main extends SurfaceView implements Callback
 			new Button(dip(getWidth())-bs,bs*5,bs,bs,"阴影",ev),
 			new Button(dip(getWidth())-bs,bs*6,bs,bs,"线样式",ev),
 			new Button(dip(getWidth())-bs,bs*7,bs,bs,"着色器",ev),
-			new Button(dip(getWidth())-bs,bs*8,bs,bs,"线粗细",ev),
+			new Button(dip(getWidth())-bs,bs*8,bs,bs,"形状设置",ev),
 			new Button(dip(getWidth())-bs,bs*9,bs,bs,"线特效",ev),
 			new Button(dip(getWidth())-bs,bs*10,bs,bs,"笔触",ev));
 		addView(
@@ -659,8 +721,10 @@ public class Main extends SurfaceView implements Callback
 					 new Button(bs*2,bs*12,bs,bs,"删除",sv),
 					 new Button(bs,bs*13,bs,bs,"封闭",sv),
 					 new Button(bs*2,bs*13,bs,bs,"自由选点",sv),
+					 new Button(bs*2,bs*14,bs,bs,"",sv),
 					 new Button(bs,bs*14,bs,bs,"确定",sv),
-					 new FloatPicker(bs*3,bs*11,bs*4,fpe)),
+					 new FloatPicker(bs*3,bs*11,bs*4,fpe)
+					 ),
 			new Menu(bs,bs*14,bs*2,bs*1,
 					 new Button(bs,bs*14,bs,bs,"点",sv),
 					 new Button(bs*2,bs*14,bs,bs,"确定",sv)),
@@ -691,10 +755,24 @@ public class Main extends SurfaceView implements Callback
 					 new Button(bs*4,bs*14,bs,bs,"填充描线",sv)),
 			new Menu(bs,bs*11,bs*7,bs*4),
 			new Menu(bs,bs*11,bs*7,bs*4),
+			new Menu(bs,bs*11,bs*7,bs*4,
+					 new FloatPicker(bs,bs*11,bs*3,fpe),
+					 new FloatPicker(bs*5,bs*11,bs*3,fpe),
+					 new Button(bs,bs*14,bs,bs,"无",sv),
+					 new Button(bs*2,bs*14,bs,bs,"圆",sv),
+					 new Button(bs*3,bs*14,bs,bs,"方",sv),
+					 new Button(bs*5,bs*14,bs,bs,"圆角",sv),
+					 new Button(bs*6,bs*14,bs,bs,"锐角",sv),
+					 new Button(bs*7,bs*14,bs,bs,"直线",sv)),
 			new Menu(bs,bs*11,bs*7,bs*4),
-			new Menu(bs,bs*11,bs*7,bs*4),
-			new Menu(bs*4,bs*11,bs*4,bs*4,
-					 new FloatPicker(bs*4,bs*11,bs*4,fpe)),
+			new Menu(bs,bs*12,bs*2,bs*3,
+					 new Button(bs,bs*12,bs,bs,"复制",sv),
+					 new Button(bs*2,bs*12,bs,bs,"删除",sv),
+					 new Button(bs,bs*13,bs,bs,"平移",sv),
+					 new Button(bs*2,bs*13,bs,bs,"镜像",sv),
+					 new Button(bs,bs*14,bs,bs,"上层",sv),
+					 new Button(bs*2,bs*14,bs,bs,"下层",sv)
+					 ),
 			new Menu(bs,bs*11,bs*7,bs*4),
 			new Menu(bs,bs*11,bs*7,bs*4),
 			new Menu(bs,bs*3,bs*7,bs*7,
@@ -786,7 +864,8 @@ public class Main extends SurfaceView implements Callback
 							{
 								Bitmap bb=Bitmap.createBitmap(getWidth(),getHeight(),Bitmap.Config.ARGB_8888);
 								Canvas c=new Canvas(bb);
-								render.draw(c);
+								Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+								render.draw(c,p);
 								final String path=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath()+"/截图_"+System.currentTimeMillis()+".png";
 								bb.compress(Bitmap.CompressFormat.PNG,100,new FileOutputStream(path));
 								bb.recycle();
@@ -872,7 +951,7 @@ public class Main extends SurfaceView implements Callback
 						MView b=mview.get(i);
 						if(b.contains(x,y))
 						{
-							if(b instanceof Menu)if(((Menu)b).show==false)continue;
+							if(b instanceof Menu&&!((Menu)b).show)continue;
 							curView=b;
 							break;
 						}
@@ -938,6 +1017,7 @@ public class Main extends SurfaceView implements Callback
 		}
 		catch(Throwable e)
 		{
+			toast(e);
 		}
 		return true;
 	}

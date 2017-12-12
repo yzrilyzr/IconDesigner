@@ -16,7 +16,7 @@ public class Button extends MView
 	public int color=buttoncolor;
 	public boolean selected=false;
 	private float cx,cy,rr;
-	public float rad=rad;
+	public float rad=px(3);
 	public Button(float x,float y,float w,float h,String txt,Event e)
 	{
 		super(x+3,y+3,w-6,h-6);

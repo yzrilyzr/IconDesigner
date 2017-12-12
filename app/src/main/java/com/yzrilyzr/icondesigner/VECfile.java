@@ -102,7 +102,8 @@ public class VECfile
 			Bitmap bit=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 			Canvas c=new Canvas(bit);
 			c.drawColor(backgcolor);
-			for(Shape s:shapes)s.onDraw(c,0,0,1,dp,sp);
+			Paint pai=new Paint();
+			for(Shape s:shapes)s.onDraw(c,0,0,1,dp,pai);
 			BufferedOutputStream os=new BufferedOutputStream(new FileOutputStream(f));
 			bit.compress(Bitmap.CompressFormat.PNG,0,os);
 			os.close();
