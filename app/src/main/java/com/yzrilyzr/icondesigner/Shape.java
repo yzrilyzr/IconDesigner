@@ -15,15 +15,14 @@ public class Shape
 		0,
 		0,
 		0,
-		0,
-		0x100888888
+		0xff000000
 	};
-	//0:color,1:strokecolor,2:miter,3:strokewidth,4:shadowD.x,5:.y,6:shadowR.x,7:.y,8shadowcolor
+	//0:color,1:strokecolor,2:miter,3:strokewidth,4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
 	public long flag=0;
 	public Shader shader=null;
 	public PathEffect pathEffect=null;
 	public String txt="";
-	private Paint sp;
+	private Paint sp=new Paint();
 	public static final class TEXT
 	{
 		public static final long
@@ -161,10 +160,11 @@ public class Shape
 	{
 		flag=(flag|all)-all+f;
 	}
-	public void onDraw(Canvas c,float xx,float yy,float sc,float dp,Paint sp)
+	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp)
 	{
-		this.sp=sp;
-
+		sp.reset();
+		sp.setAntiAlias(antia);
+		sp.setDither(dither);
 		Paint.Cap cp=Paint.Cap.BUTT;
 		if(hasFlag(STROKE.BUTT))cp=Paint.Cap.BUTT;
 		else if(hasFlag(STROKE.SQUARE))cp=Paint.Cap.SQUARE;
@@ -177,12 +177,11 @@ public class Shape
 		else if(hasFlag(STROKE.ROUND_JOIN))jn=Paint.Join.ROUND;
 		sp.setStrokeJoin(jn);
 
-		if(par[2]!=0)sp.setStrokeMiter((float)par[2]/100f*dp*sc);
+		sp.setStrokeMiter((float)par[2]/100f*dp*sc);
 		sp.setStrokeWidth((float)par[3]/100f*dp*sc);
 		sp.setPathEffect(pathEffect);
 		sp.setShader(shader);
-		float shadowr=(float)Math.sqrt(Math.pow((par[6]-par[4]),2)+Math.pow((par[7]-par[5]),2));
-		sp.setShadowLayer(shadowr,(par[4]*dp+xx)*sc,(par[5]*dp+yy)*sc,par[8]);
+		sp.setShadowLayer((float)par[6]/100f,(par[4]*dp+xx)*sc,(par[5]*dp+yy)*sc,par[7]);
 
 		if(hasFlag(SHAPEPAR.NEWLAYER))c.save();
 		PorterDuff.Mode xm=null;
@@ -211,12 +210,12 @@ public class Shape
 			Point p1=pts.get(0);
 			Point p2=pts.get(1);
 			RectF re=new RectF((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawRect(re,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawRect(re,sp);
 		}
@@ -225,12 +224,12 @@ public class Shape
 			Point p1=pts.get(0);
 			Point p2=pts.get(1);
 			float r=(float)Math.sqrt(Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2));
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawCircle((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,r*dp*sc,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawCircle((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,r*dp*sc,sp);
 		}
@@ -239,12 +238,12 @@ public class Shape
 			Point p1=pts.get(0);
 			Point p2=pts.get(1);
 			RectF re=new RectF((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawOval(re,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawOval(re,sp);
 		}
@@ -266,12 +265,12 @@ public class Shape
 			if(p4.x-cx>0&&p4.y-cy<0)end+=360f;
 			if(start>end)end+=360f;
 			RectF re=new RectF((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawArc(re,start,end-start,hasFlag(SHAPEPAR.CENTER),sp);
-				fs();
+				fs(sp);
 			}
 			c.drawArc(re,start,end-start,hasFlag(SHAPEPAR.CENTER),sp);
 		}
@@ -283,36 +282,36 @@ public class Shape
 			float r1=p3.x-p1.x;
 			float r2=p3.y-p1.y;
 			RectF re=new RectF((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawRoundRect(re,r1*dp*sc,r2*dp*sc,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawRoundRect(re,r1*dp*sc,r2*dp*sc,sp);
 		}
 		else if(hasFlag(TYPE.POINT))
 		{
 			Point r=pts.get(0);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawPoint((r.x*dp+xx)*sc,(r.y*dp+yy)*sc,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawPoint((r.x*dp+xx)*sc,(r.y*dp+yy)*sc,sp);
 		}
 		else if(hasFlag(TYPE.LINE))
 		{
 			Point r1=pts.get(0),r2=pts.get(1);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawLine((r1.x*dp+xx)*sc,(r1.y*dp+yy)*sc,(r2.x*dp+xx)*sc,(r2.y*dp+yy)*sc,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawLine((r1.x*dp+xx)*sc,(r1.y*dp+yy)*sc,(r2.x*dp+xx)*sc,(r2.y*dp+yy)*sc,sp);
 		}
@@ -375,12 +374,12 @@ public class Shape
 					}
 				}
 			if(a.x==1)pa.close();
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawPath(pa,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawPath(pa,sp);
 		}
@@ -401,12 +400,12 @@ public class Shape
 			else if(hasFlag(TEXT.RIGHT))align=Paint.Align.RIGHT;
 			else if(hasFlag(TEXT.CENTER))align=Paint.Align.CENTER;
 			sp.setTextAlign(align);
-			if(st())fill();
+			if(st())fill(sp);
 			else
 			{
-				sf();
+				sf(sp);
 				c.drawText(txt,(r.x*dp+xx)*sc,(r.y*dp+yy)*sc,sp);
-				fs();
+				fs(sp);
 			}
 			c.drawText(txt,(r.x*dp+xx)*sc,(r.y*dp+yy)*sc,sp);
 		}
@@ -416,19 +415,19 @@ public class Shape
 	{
 		return hasFlag(STYLE.FILL)||hasFlag(STYLE.STROKE);
 	}
-	private void fill()
+	private void fill(Paint sp)
 	{
 		sp.setColor(hasFlag(STYLE.FILL)?par[0]:par[1]);
 		sp.setStyle(hasFlag(STYLE.FILL)?Paint.Style.FILL:Paint.Style.STROKE);
 	}
 
-	private void sf()
+	private void sf(Paint sp)
 	{
 		sp.setColor(hasFlag(STYLE.SF)?par[0]:par[1]);
 		sp.setStyle(hasFlag(STYLE.SF)?Paint.Style.FILL:Paint.Style.STROKE);
 	}
 
-	private void fs()
+	private void fs(Paint sp)
 	{
 		sp.setColor(hasFlag(STYLE.FS)?par[0]:par[1]);
 		sp.setStyle(hasFlag(STYLE.FS)?Paint.Style.FILL:Paint.Style.STROKE);

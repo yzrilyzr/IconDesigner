@@ -54,11 +54,13 @@ public class VECfile
 				c.drawRect(i,j,i+w,j+w,pp);
 			}
 		}
-		if(bgpath!=null){
+		if(bgpath!=null)
+		{
 			Bitmap bb=BitmapFactory.decodeFile(bgpath);
-			if(bb!=null){
-			c.drawBitmap(bb,0,0,pp);
-			bb.recycle();
+			if(bb!=null)
+			{
+				c.drawBitmap(bb,0,0,pp);
+				bb.recycle();
 			}
 		}
 	}
@@ -89,11 +91,9 @@ public class VECfile
 	}
 	public void onDraw()
 	{
-		sp.setAntiAlias(antialias);
-		sp.setDither(dither);
 		if(back!=null)can.drawBitmap(back,0,0,sp);
 		can.drawColor(backgcolor);
-		for(Shape s:shapes)s.onDraw(can,0,0,1,dp,sp);
+		for(Shape s:shapes)s.onDraw(can,antialias,dither,0,0,1,dp);
 	}
 	public void loadoutFile(String f)
 	{
@@ -102,8 +102,7 @@ public class VECfile
 			Bitmap bit=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 			Canvas c=new Canvas(bit);
 			c.drawColor(backgcolor);
-			Paint pai=new Paint();
-			for(Shape s:shapes)s.onDraw(c,0,0,1,dp,pai);
+			for(Shape s:shapes)s.onDraw(c,antialias,dither,0,0,1,dp);
 			BufferedOutputStream os=new BufferedOutputStream(new FileOutputStream(f));
 			bit.compress(Bitmap.CompressFormat.PNG,0,os);
 			os.close();
@@ -119,7 +118,7 @@ public class VECfile
 		{
 			DataOutputStream os=new DataOutputStream(new FileOutputStream(path));
 			os.writeBytes("VEC");
-			os.writeByte(2);
+			os.writeByte(3);
 			os.writeUTF(name);
 			os.writeUTF(comm);
 			os.writeInt(width);
@@ -154,10 +153,13 @@ public class VECfile
 	public static VECfile readFile(String path)throws IllegalStateException,IOException
 	{
 		VECfile v=new VECfile();
-			DataInputStream os=new DataInputStream(new FileInputStream(path));
-			byte[] h=new byte[4];
-			os.read(h);
-			if(h[3]!=2||!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
+		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		byte[] h=new byte[4];
+		os.read(h);
+		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
+		else if(h[3]==2)return readFileV2(path);
+		else if(h[3]==3)
+		{
 			v.name=os.readUTF();
 			v.comm=os.readUTF();
 			v.width=os.readInt();
@@ -182,7 +184,7 @@ public class VECfile
 					po.y=os.readInt();
 					s.pts.add(po);
 				}
-				for(int u=0;u<s.par.length;u++)
+				for(int u=0;u<8;u++)
 				{
 					s.par[u]=os.readInt();
 				}
@@ -192,8 +194,53 @@ public class VECfile
 			os.close();
 			v.init(v.width,v.height,v.dp);
 			return v;
+		}
+		else return null;
 	}
-	public static class Builder{
+	public static VECfile readFileV2(String path)throws IllegalStateException,IOException
+	{
+		VECfile v=new VECfile();
+		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		byte[] h=new byte[4];
+		os.read(h);
+		v.name=os.readUTF();
+		v.comm=os.readUTF();
+		v.width=os.readInt();
+		v.height=os.readInt();
+		v.antialias=os.readBoolean();
+		v.dither=os.readBoolean();
+		v.backgcolor=os.readInt();
+		v.dp=os.readFloat();
+		v.shapes.clear();
+		int siz=os.readInt();
+		for(int i=0;i<siz;i++)
+		{
+			Shape s=new Shape(0);
+			s.flag=os.readLong();
+			if(s.hasFlag(Shape.TYPE.TEXT))s.txt=os.readUTF();
+			int ptsl=os.readInt();
+			s.pts.clear();
+			for(int u=0;u<ptsl;u++)
+			{
+				Point po=new Point();
+				po.x=os.readInt();
+				po.y=os.readInt();
+				s.pts.add(po);
+			}
+			for(int u=0;u<8;u++)
+			{
+				s.par[u]=os.readInt();
+			}
+			os.readInt();
+			v.shapes.add(s);
+		}
+		if(os.available()>0)v.bgpath=os.readUTF();
+		os.close();
+		v.init(v.width,v.height,v.dp);
+		return v;
+	}
+	public static class Builder
+	{
 		int width=500,height=500;//图像大小
 		float dp=20;//精度
 		int backgcolor=0xff000000;
@@ -288,7 +335,8 @@ public class VECfile
 		{
 			return dither;
 		}
-		public VECfile build(VECfile v2,Main main){
+		public VECfile build(VECfile v2,Main main)
+		{
 			v2.recycle();
 			VECfile v=new VECfile(this.width,this.height,this.dp,this.bgpath);
 			v.backgcolor=this.backgcolor;

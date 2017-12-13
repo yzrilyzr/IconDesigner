@@ -36,20 +36,19 @@ public class Main extends SurfaceView implements Callback
 	private int cx,cy;//指针
 	private float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
 	private float ddx,ddy;//上次触摸
-	private int pointIndex=0;
+	private int pointIndex=0;//path点
 	public static Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
 	public static Point tmpPoint,tmpPoint2;//临时和回退
 	protected static MainActivity ctx;
 	public CopyOnWriteArrayList<MView> mview=new CopyOnWriteArrayList<MView>();
-	protected MView curView;
-	public static VECfile vec;
+	protected MView curView;//逻辑view
+	public static VECfile vec;//文件
 	private SurfaceHolder holder;
-	private int MODE=0;
-	private ColorView curColorView;
+	private int MODE=0;//触摸模式
+	private ColorView curColorView;//当前颜色
 	private StringBuilder info=new StringBuilder();
-	public RenderThread render;
+	private RenderThread render;
 	private File localFile=new File(MainActivity.path);
-	private RectF screen;
 	public static VECfile.Builder builder;
 	static{
 		builder=new VECfile.Builder();
@@ -58,12 +57,10 @@ public class Main extends SurfaceView implements Callback
 	public Main(Context c)
 	{
 		super(c);
-		ctx=(MainActivity) c;
+		ctx=(MainActivity)c;
 		MView.ctx=ctx;
 		MView.main=this;
 		MView.dpi=ctx.getResources().getDisplayMetrics().density;
-		setLayerType(LAYER_TYPE_HARDWARE,null);
-		setDrawingCacheEnabled(false);
 		holder=getHolder();
 		holder.setFormat(PixelFormat.RGBA_8888);
 		holder.addCallback(this);
@@ -81,7 +78,6 @@ public class Main extends SurfaceView implements Callback
 	{
 		if(!inited)
 		{
-			screen=new RectF(0,0,getWidth(),getHeight());
 			initUi();
 			inited=true;
 			render=new RenderThread();
@@ -93,15 +89,18 @@ public class Main extends SurfaceView implements Callback
 		private int alpha=300;
 		private Bitmap icon=BitmapFactory.decodeResource(getResources(),R.drawable.test);
 		float mdeltax,mdeltay,mscale;
+		int fps=0;
 		@Override
 		public void run()
 		{
 			setName("Render");
 			Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
 			paint.setTextSize(px(18));
+			long time;
 			while(true)
 				try
 				{
+					time=System.currentTimeMillis();
 					Canvas c=holder.lockCanvas();
 					if(c!=null)
 					{
@@ -110,6 +109,8 @@ public class Main extends SurfaceView implements Callback
 					}
 					Thread.sleep(1);
 					if(alpha>0)alpha-=5;
+					time=System.currentTimeMillis()-time;
+					if(time!=0)fps=(int)(1000/time);
 				}
 				catch(Throwable e)
 				{
@@ -144,7 +145,7 @@ public class Main extends SurfaceView implements Callback
 			if(vec!=null&&vec.front!=null&&!vec.front.isRecycled())
 			{
 				vec.onDraw();
-				if(tmpShape!=null&&!vec.shapes.contains(tmpShape))tmpShape.onDraw(vec.can,0,0,1,vec.dp,vec.sp);
+				if(tmpShape!=null&&!vec.shapes.contains(tmpShape))tmpShape.onDraw(vec.can,vec.antialias,vec.dither,0,0,1,vec.dp);
 				canvas.drawBitmap(vec.front,m,paint);
 			}
 		}
@@ -154,7 +155,7 @@ public class Main extends SurfaceView implements Callback
 			paint.setColor(0xff000000);
 			canvas.drawCircle((cx*vec.dp+mdeltax)*mscale,(cy*vec.dp+mdeltay)*mscale,10,paint);
 			paint.setTextAlign(Paint.Align.LEFT);
-			canvas.drawText(cx+","+cy,0,paint.getTextSize()*3.2f,paint);
+			canvas.drawText(String.format("%d,%d;shapes:%d;fps:",cx,cy,vec.shapes.size(),fps),0,paint.getTextSize()*3.2f,paint);
 			for(MView b:mview)b.onDraw(canvas);
 			paint.setTextAlign(Paint.Align.CENTER);
 			canvas.drawText(info.toString(),getWidth()/2,getHeight()/2,paint);
@@ -188,9 +189,13 @@ public class Main extends SurfaceView implements Callback
 				paint.setStyle(Paint.Style.STROKE);
 				paint.setStrokeWidth(1);
 				for(float i=mdeltax*mscale;i<(vec.width+mdeltax)*mscale;i+=vec.dp*mscale)
-					if(i>0&&i<getWidth())canvas.drawLine(i,mdeltay*mscale,i,(vec.height+mdeltay)*mscale,paint);
+					if(i<0)continue;
+					else if(i>getWidth())break;
+					else canvas.drawLine(i,mdeltay*mscale,i,(vec.height+mdeltay)*mscale,paint);
 				for(float j=mdeltay*mscale;j<(vec.height+mdeltay)*mscale;j+=vec.dp*mscale)
-					if(j>0&&j<getHeight())canvas.drawLine(mdeltax*mscale,j,(vec.width+mdeltax)*mscale,j,paint);
+					if(j<0)continue;
+					else if(j>getHeight())break;
+					else canvas.drawLine(mdeltax*mscale,j,(vec.width+mdeltax)*mscale,j,paint);
 			}
 		}
 	}
@@ -599,6 +604,7 @@ public class Main extends SurfaceView implements Callback
 									else if(i==1)MODE=1;
 								}
 								else if(j==10)colorShape.setFlag(Shape.STYLE.FILL*(long)Math.pow(2,i),Shape.STYLE.ALL);
+								else if(j==12&&i==0)MODE=5;
 								else if(j==20&&i==1)
 								{
 									String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".vec";
@@ -649,12 +655,16 @@ public class Main extends SurfaceView implements Callback
 								{
 									tmpShape.pts.get(0).y=(int)(f*100);
 								}
+								else if(j==12)
+								{
+									colorShape.par[6]=(int)(f*100);
+									setTmpShape();
+								}
 								else if(j==13)
 								{
 									if(i==0)colorShape.par[3]=(int)(f*100);
 									else if(i==1)colorShape.par[2]=(int)(f*100);
 									setTmpShape();
-
 								}
 							}
 						}
@@ -754,7 +764,9 @@ public class Main extends SurfaceView implements Callback
 					 new Button(bs*3,bs*14,bs,bs,"描线填充",sv),
 					 new Button(bs*4,bs*14,bs,bs,"填充描线",sv)),
 			new Menu(bs,bs*11,bs*7,bs*4),
-			new Menu(bs,bs*11,bs*7,bs*4),
+			new Menu(bs,bs*11,bs*5,bs*4,
+					 new Button(bs,bs*14,bs,bs,"偏移",sv),
+					 new FloatPicker(bs*2,bs*11,bs*4,fpe)),
 			new Menu(bs,bs*11,bs*7,bs*4,
 					 new FloatPicker(bs,bs*11,bs*3,fpe),
 					 new FloatPicker(bs*5,bs*11,bs*3,fpe),
@@ -833,9 +845,11 @@ public class Main extends SurfaceView implements Callback
 			@Override public void e(ColorView b,int p)
 			{
 				curColorView=b;
-				if(p==0)colorShape.par[0]=b.color;
+				if(me[12].show)colorShape.par[7]=b.color;
+				else if(p==0)colorShape.par[0]=b.color;
 				else if(p==1)colorShape.par[1]=b.color;
-				for(ColorView bb:cbt)if(bb==b)bb.selected=true;
+				for(ColorView bb:cbt)
+					if(bb==b)bb.selected=true;
 					else bb.selected=false;
 				setTmpShape();
 			}
@@ -856,40 +870,6 @@ public class Main extends SurfaceView implements Callback
 			pi.argb[i-1]=(SeekBar)me[18].views.get(i);
 			pi.argb[i-1].e=pi;
 		}
-		addView(new Button(0,bs*13,bs,bs,"截图",new Button.Event(){
-						@Override
-						public void e(Button b)
-						{
-							try
-							{
-								Bitmap bb=Bitmap.createBitmap(getWidth(),getHeight(),Bitmap.Config.ARGB_8888);
-								Canvas c=new Canvas(bb);
-								Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-								render.draw(c,p);
-								final String path=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath()+"/截图_"+System.currentTimeMillis()+".png";
-								bb.compress(Bitmap.CompressFormat.PNG,100,new FileOutputStream(path));
-								bb.recycle();
-								final MediaScannerConnection[] m=new MediaScannerConnection[1];
-								MediaScannerConnection.MediaScannerConnectionClient cl=new MediaScannerConnection.MediaScannerConnectionClient(){
-									@Override
-									public void onMediaScannerConnected()
-									{
-										m[0].scanFile(path,"image/png");
-									}
-									@Override
-									public void onScanCompleted(String p1, Uri p2)
-									{
-										toast("截图保存成功");
-										m[0].disconnect();
-									}
-								};
-								m[0]=new MediaScannerConnection(ctx,cl);
-								m[0].connect();
-							}
-							catch (Exception e)
-							{}
-						}
-					}));
 	}
 	private void showMenu(Menu m)
 	{
@@ -944,6 +924,8 @@ public class Main extends SurfaceView implements Callback
 					else if(MODE==2)MODE=0;
 					else if(MODE==3)MODE=4;
 					else if(MODE==4)MODE=0;
+					else if(MODE==5)MODE=6;
+					else if(MODE==6)MODE=0;
 					if(tmpPoint!=null)tmpPoint2=new Point(tmpPoint);
 					else tmpPoint2=null;
 					for(int i=mview.size()-1;i!=-1;i--)
@@ -973,6 +955,16 @@ public class Main extends SurfaceView implements Callback
 						int size=tmpShape.pts.size();
 						Point poi2=tmpShape.pts.get(size-1);
 						if(size==1||!poi.equals(poi2))tmpShape.pts.add(poi);
+					}
+					else if(MODE==6)
+					{
+						if(a==MotionEvent.ACTION_DOWN)tmpPoint2=new Point(cx,cy);
+						else
+						{
+							colorShape.par[4]=cx-tmpPoint2.x;
+							colorShape.par[5]=cy-tmpPoint2.y;
+							setTmpShape();
+						}
 					}
 					else if(tmpPoint!=null)
 					{

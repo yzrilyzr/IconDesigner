@@ -43,7 +43,7 @@ public class ShapePreview extends Button
 		c.drawText("上层",up.centerX(),up.centerY()+pa.getTextSize()/2,pa);
 		c.drawText("下层",down.centerX(),down.centerY()+pa.getTextSize()/2,pa);
 		int l=c.saveLayer(this,pa,Canvas.ALL_SAVE_FLAG);
-		sh.onDraw(c,left/scale,top/scale,scale,main.vec.dp,main.vec.sp);
+		sh.onDraw(c,main.vec.antialias,main.vec.dither,left/scale,top/scale,scale,main.vec.dp);
 		c.restoreToCount(l);
 	}
 
