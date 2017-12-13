@@ -100,7 +100,7 @@ public class Main extends SurfaceView implements Callback
 			while(true)
 				try
 				{
-					time=System.currentTimeMillis();
+					time=System.nanoTime();
 					Canvas c=holder.lockCanvas();
 					if(c!=null)
 					{
@@ -109,8 +109,8 @@ public class Main extends SurfaceView implements Callback
 					}
 					Thread.sleep(1);
 					if(alpha>0)alpha-=5;
-					time=System.currentTimeMillis()-time;
-					if(time!=0)fps=(int)(1000/time);
+					time=System.nanoTime()-time;
+					if(time!=0)fps=(int)(1000000000/time+fps*3)/4;
 				}
 				catch(Throwable e)
 				{
@@ -155,7 +155,7 @@ public class Main extends SurfaceView implements Callback
 			paint.setColor(0xff000000);
 			canvas.drawCircle((cx*vec.dp+mdeltax)*mscale,(cy*vec.dp+mdeltay)*mscale,10,paint);
 			paint.setTextAlign(Paint.Align.LEFT);
-			canvas.drawText(String.format("%d,%d;shapes:%d;fps:",cx,cy,vec.shapes.size(),fps),0,paint.getTextSize()*3.2f,paint);
+			canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d",cx,cy,vec.shapes.size(),fps),0,paint.getTextSize()*3.2f,paint);
 			for(MView b:mview)b.onDraw(canvas);
 			paint.setTextAlign(Paint.Align.CENTER);
 			canvas.drawText(info.toString(),getWidth()/2,getHeight()/2,paint);
@@ -538,9 +538,15 @@ public class Main extends SurfaceView implements Callback
 											for(int jj=0;jj<9;jj++)me[jj].show=false;
 										}
 									}
-									else if(i==2);
-									else if(i==3);
-									if(i==4)
+									else if(i==2)MODE=7;
+									else if(i==3&&tmpShape!=null)
+										for(int ik=tmpShape.hasFlag(Shape.TYPE.PATH)?1:0;ik<tmpShape.pts.size();ik++)
+										{
+											Point pp=tmpShape.pts.get(ik);
+											pp.x=vec.width-pp.x;
+											pp.y=vec.width-pp.y;
+										}
+									else if(i==4)
 									{
 										int index=vec.shapes.indexOf(tmpShape);
 										if(index!=-1)
