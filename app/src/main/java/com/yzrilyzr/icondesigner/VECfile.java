@@ -18,9 +18,10 @@ public class VECfile
 	CopyOnWriteArrayList<Shape> shapes=new CopyOnWriteArrayList<Shape>();
 	Paint sp=new Paint();//形状
 	String name="",comm="",bgpath=null;
-	public Bitmap front,back;
-	Canvas can;
-	boolean antialias=false,dither=false;
+	public Bitmap front=null,back=null,front2=null;
+	Canvas can,can2;
+	boolean antialias=false,dither=false,which=false,lock=false;
+	Shape tmpShape;
 	public VECfile(int width,int height,float dp,String b)
 	{
 		bgpath=b;
@@ -36,11 +37,16 @@ public class VECfile
 		this.height=height;
 		this.dp=dp;
 		Paint pp=new Paint();
-		setHeap((long)width*(long)height*10l);
+		Bitmap b2=back,f2=front,c2=front2;
 		back=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 		front=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+		front2=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 		Canvas c=new Canvas(back);
 		can=new Canvas(front);
+		can2=new Canvas(front2);
+		if(b2!=null)b2.recycle();
+		if(f2!=null)f2.recycle();
+		if(c2!=null)c2.recycle();
 		boolean grey=false;
 		int w=width/25;
 		for(int i=0;i<width;i+=w)
@@ -64,36 +70,39 @@ public class VECfile
 			}
 		}
 	}
-	public static void setHeap(long l)
-	{
-		try
-		{
-			Class cls=Class.forName("dalvik.system.VMRuntime");
-			Object o=cls.getMethod("getRuntime").invoke(cls);
-			o.getClass().getMethod("setMinimumHeapSize",long.class).invoke(o,l);
-		}
-		catch (Exception e)
-		{}
-	}
-	public void initPosition(Main m)
-	{
-		m.setPosition((m.getWidth()-width)/2,(m.getHeight()-height)/2,1);
-	}
 	public VECfile()
 	{}
-	public void recycle()
-	{
-		front.recycle();
-		back.recycle();
-		back=null;
-		front=null;
-		System.gc();
-	}
 	public void onDraw()
 	{
-		if(back!=null)can.drawBitmap(back,0,0,sp);
-		can.drawColor(backgcolor);
-		for(Shape s:shapes)s.onDraw(can,antialias,dither,0,0,1,dp);
+		if(!lock)
+		{
+			which=!which;
+			if(which)
+			{
+				sp.reset();
+				can.drawBitmap(back,0,0,sp);
+				can.drawColor(backgcolor);
+				for(Shape s:shapes)s.onDraw(can,antialias,dither,0,0,1,dp,sp);
+				if(tmpShape!=null&&!shapes.contains(tmpShape))tmpShape.onDraw(can,antialias,dither,0,0,1,dp,sp);
+			}
+			else
+			{
+				sp.reset();
+				can2.drawBitmap(back,0,0,sp);
+				can2.drawColor(backgcolor);
+				for(Shape s:shapes)s.onDraw(can2,antialias,dither,0,0,1,dp,sp);
+				if(tmpShape!=null&&!shapes.contains(tmpShape))tmpShape.onDraw(can2,antialias,dither,0,0,1,dp,sp);
+			}
+		}
+	}
+	public Bitmap lock(Shape tmp)
+	{
+		tmpShape=tmp;
+		lock=true;
+		return which?front2:front;
+	}
+	public void unlock(){
+		lock=false;
 	}
 	public void loadoutFile(String f)
 	{
@@ -102,7 +111,8 @@ public class VECfile
 			Bitmap bit=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 			Canvas c=new Canvas(bit);
 			c.drawColor(backgcolor);
-			for(Shape s:shapes)s.onDraw(c,antialias,dither,0,0,1,dp);
+			Paint pp=new Paint();
+			for(Shape s:shapes)s.onDraw(c,antialias,dither,0,0,1,dp,pp);
 			BufferedOutputStream os=new BufferedOutputStream(new FileOutputStream(f));
 			bit.compress(Bitmap.CompressFormat.PNG,0,os);
 			os.close();
@@ -335,16 +345,14 @@ public class VECfile
 		{
 			return dither;
 		}
-		public VECfile build(VECfile v2,Main main)
+		public VECfile build()
 		{
-			v2.recycle();
 			VECfile v=new VECfile(this.width,this.height,this.dp,this.bgpath);
 			v.backgcolor=this.backgcolor;
 			v.name=this.name;
 			v.comm=this.comm;
 			v.antialias=this.antialias=false;
 			v.dither=this.dither;
-			v.initPosition(main);
 			return v;
 		}
 	}

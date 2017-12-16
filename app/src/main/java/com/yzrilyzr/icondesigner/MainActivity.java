@@ -18,29 +18,11 @@ import android.view.KeyEvent;
 public class MainActivity extends Activity 
 {
 	static String path=Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/";
-	Main main;
 	@Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-		Thread.currentThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
-				@Override
-				public void uncaughtException(Thread p1, Throwable p2)
-				{
-					try
-					{
-						FileOutputStream o=new FileOutputStream(path+"err.txt");
-						PrintStream p=new PrintStream(o);
-						p2.printStackTrace(p);
-						o.flush();
-						o.close();
-					}
-					catch (Exception e)
-					{}
-					System.exit(0);
-				}
-			});
-		setContentView(main=new Main(this));
+		setContentView(new MainView(this));
     }
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
@@ -55,7 +37,7 @@ public class MainActivity extends Activity
 			int columnIndex = cursor.getColumnIndex(filePathColumn[0]);  
 			final String picturePath = cursor.getString(columnIndex);  
 			cursor.close();
-			Main.builder.setBgpath(picturePath);
+			MainView.render.builder.setBgpath(picturePath);
 		}
 	}
 	@Override

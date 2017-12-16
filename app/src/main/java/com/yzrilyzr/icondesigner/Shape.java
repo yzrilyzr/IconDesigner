@@ -22,7 +22,6 @@ public class Shape
 	public Shader shader=null;
 	public PathEffect pathEffect=null;
 	public String txt="";
-	private Paint sp=new Paint();
 	public static final class TEXT
 	{
 		public static final long
@@ -160,7 +159,7 @@ public class Shape
 	{
 		flag=(flag|all)-all+f;
 	}
-	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp)
+	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp,Paint sp)
 	{
 		sp.reset();
 		sp.setAntiAlias(antia);
@@ -334,9 +333,9 @@ public class Shape
 						t2=null;
 						if(i+1<pts.size())t2=pts.get(i+1);
 						poi.add(new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc));
-						if(Main.tmpShape==this&&i!=0&&i!=pts.size())
+						if(MainView.render.tmpShape==this&&i!=0&&i!=pts.size())
 						{
-							if(Main.tmpPoint==t)tp.setColor(0xffff0000);
+							if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
 							else tp.setColor(0xff000000);
 							c.drawText(i+"",(t.x*dp+xx)*sc,(t.y*dp+yy)*sc,tp);
 						}
@@ -366,9 +365,9 @@ public class Shape
 					Point t=pts.get(i);
 					if(i==1)pa.moveTo((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
 					else pa.lineTo((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
-					if(Main.tmpShape==this)
+					if(MainView.render.tmpShape==this)
 					{
-						if(Main.tmpPoint==t)tp.setColor(0xffff0000);
+						if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
 						else tp.setColor(0xff000000);
 						c.drawText(i+"",(t.x*dp+xx)*sc,(t.y*dp+yy)*sc,tp);
 					}
@@ -441,6 +440,17 @@ public class Shape
 		else if(hasFlag(TYPE.PATH)||hasFlag(TYPE.POINT))len=1;
 		for(int i=0;i<len;i++)
 			pts.add(new Point(0,0));
+	}
+	public Shape(Shape s){
+		this(s.flag);
+		pts.clear();
+		for(Point p:s.pts)
+			pts.add(new Point(p));
+		int k=0;
+		for(int ii:s.par)
+			par[k++]=ii;
+		flag=s.flag;
+		txt=s.txt;
 	}
 	public void set(Shape src)
 	{

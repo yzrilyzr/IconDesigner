@@ -85,10 +85,10 @@ public class FloatPicker extends MView
 		if(ot<r&&mode==0)
 		{
 			mode=1;
-			final EditText edit=new EditText(ctx);
+			final EditText edit=new EditText(render.ctx);
 			edit.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
 			edit.setText(getValue()+"");
-			new AlertDialog.Builder(ctx)
+			new AlertDialog.Builder(render.ctx)
 				.setTitle("设置数值(0~+∞)")
 				.setView(edit)
 				.setPositiveButton("确定",new DialogInterface.OnClickListener(){

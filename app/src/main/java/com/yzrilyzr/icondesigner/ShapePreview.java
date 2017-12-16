@@ -2,6 +2,7 @@ package com.yzrilyzr.icondesigner;
 import android.graphics.Canvas;
 import android.graphics.RectF;
 import android.view.MotionEvent;
+import android.graphics.Paint;
 
 public class ShapePreview extends Button
 {
@@ -10,12 +11,13 @@ public class ShapePreview extends Button
 	int index;
 	RectF up,down;
 	boolean issub=false;
+	Paint pp;
 	public ShapePreview(float x,float y,float w,float h,int ind,Shape sh,Event e)
 	{
 		super(x,y,w,h,"",e);
 		this.sh=sh;
 		this.index=ind;
-		if(main.tmpShape==sh)color=buttonselectedcolor;
+		if(render.tmpShape==sh)color=buttonselectedcolor;
 		long ww=sh.flag;
 		ww|=Shape.TYPE.ALL;
 		ww-=Shape.TYPE.ALL;
@@ -23,10 +25,11 @@ public class ShapePreview extends Button
 		ww/=Shape.TYPE.RECT;
 		int hh=0;
 		while((ww/=2l)>0)hh++;
-		txt=((Button)main.mview.get(9+hh)).txt;
-		scale=height()/main.vec.height;
-		up=new RectF(left+height()*2,0,right-height()/2,0);
+		txt=((Button)render.mview.get(9+hh)).txt;
+		scale=height()/render.vec.height;
+		up=new RectF(left+width()/3*2,0,right,0);
 		down=new RectF(up);
+		pp=new Paint();
 	}
 	@Override
 	public void onDraw(Canvas c)
@@ -43,7 +46,7 @@ public class ShapePreview extends Button
 		c.drawText("上层",up.centerX(),up.centerY()+pa.getTextSize()/2,pa);
 		c.drawText("下层",down.centerX(),down.centerY()+pa.getTextSize()/2,pa);
 		int l=c.saveLayer(this,pa,Canvas.ALL_SAVE_FLAG);
-		sh.onDraw(c,main.vec.antialias,main.vec.dither,left/scale,top/scale,scale,main.vec.dp);
+		sh.onDraw(c,render.vec.antialias,render.vec.dither,left/scale,top/scale,scale,render.vec.dp,pp);
 		c.restoreToCount(l);
 	}
 
@@ -56,10 +59,10 @@ public class ShapePreview extends Button
 		{
 			if(up.contains(x,y)){
 				List lis=(List)parent;
-				main.vec.shapes.remove(index);
+				render.vec.shapes.remove(index);
 				lis.views.remove(index);
 				if(--index<0)index=0;
-				main.vec.shapes.add(index,sh);
+				render.vec.shapes.add(index,sh);
 				lis.views.add(index,this);
 				int kk=0;
 				for(MView v:lis.views)
@@ -67,10 +70,10 @@ public class ShapePreview extends Button
 			}
 			else if(down.contains(x,y)){
 				List lis=(List)parent;
-				main.vec.shapes.remove(index);
+				render.vec.shapes.remove(index);
 				lis.views.remove(index);
-				if(++index>main.vec.shapes.size())index=main.vec.shapes.size();
-				main.vec.shapes.add(index,sh);
+				if(++index>render.vec.shapes.size())index=render.vec.shapes.size();
+				render.vec.shapes.add(index,sh);
 				lis.views.add(index,this);
 				int kk=0;
 				for(MView v:lis.views)

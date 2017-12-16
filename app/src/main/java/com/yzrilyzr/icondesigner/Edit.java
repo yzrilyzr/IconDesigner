@@ -1,9 +1,7 @@
 package com.yzrilyzr.icondesigner;
-import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.view.MotionEvent;
-import android.view.inputmethod.InputMethodManager;
 
 public class Edit extends MView
 {
@@ -43,11 +41,8 @@ public class Edit extends MView
 		if(a==MotionEvent.ACTION_DOWN&&contains(x,y))touch=true;
 		if(a==MotionEvent.ACTION_UP){
 			if(contains(x,y)&&touch){
-				main.curView=this;
-				main.setFocusableInTouchMode(true);
-				InputMethodManager imm = (InputMethodManager)ctx
-					.getSystemService(Context.INPUT_METHOD_SERVICE);
-				imm.showSoftInput(main,InputMethodManager.SHOW_IMPLICIT);
+				render.curView=this;
+				render.showIME();
 			}
 			touch=false;
 		}

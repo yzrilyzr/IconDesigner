@@ -15,11 +15,11 @@ public class MView extends RectF
 	menucolor=0x90a0e0a0,
 	editcolor=0xffffffff,
 	buttonselectedcolor=0xffffff66,
-	seekbarcolor=0xff33ff66;
-	public static Context ctx;
-	public static Main main;
+	seekbarcolor=0xff33ff66,
+	unavailablecolor=0xff909090,
+	toastcolor=0xff66ccff;
+	public static RenderThread render;
 	public MView parent;
-	public static float dpi;
 	public void onDraw(Canvas c)
 	{}
 	public void onTouchEvent(MotionEvent e)
@@ -30,10 +30,10 @@ public class MView extends RectF
 	}
 	public static int px(float i)
 	{
-		return (int)(i*dpi);
+		return (int)(i*render.dpi);
 	}
 	public static int dip(float i)
 	{
-		return (int)(i/dpi);
+		return (int)(i/render.dpi);
 	}
 }

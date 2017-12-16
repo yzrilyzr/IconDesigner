@@ -1,7 +1,6 @@
 package com.yzrilyzr.icondesigner;
 
 import android.graphics.*;
-import android.view.*;
 import android.view.inputmethod.*;
 
 import android.app.AlertDialog;
@@ -9,212 +8,290 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.text.InputType;
-import android.view.SurfaceHolder.Callback;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.widget.EditText;
-import android.widget.Toast;
+import com.yzrilyzr.icondesigner.MView;
+import com.yzrilyzr.icondesigner.MainActivity;
+import com.yzrilyzr.icondesigner.R;
+import com.yzrilyzr.icondesigner.Shape;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
-import android.os.Environment;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
-import java.io.IOException;
-import java.io.BufferedOutputStream;
-import java.io.PrintWriter;
-import java.io.ByteArrayOutputStream;
-public class Main extends SurfaceView implements Callback
+
+public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
-	private boolean useNet=true,inited=false,moved=false;
-	private int cx,cy;//指针
-	private float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
-	private float ddx,ddy;//上次触摸
-	private int pointIndex=0;//path点
-	public static Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
-	public static Point tmpPoint,tmpPoint2;//临时和回退
-	protected static MainActivity ctx;
+	public MainActivity ctx;
+	public float dpi;
+	public VECfile vec=new VECfile(384,384,3.84f,null);//文件
+	public VECfile.Builder builder=new VECfile.Builder();
+	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
+	public Point tmpPoint,tmpPoint2;//临时和回退
+	public int alpha=300;
+	public MView curView;//逻辑view
+	public Bitmap icon;
+	public int ram=0;
+	public int fps=0;
+	public float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
+	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> undo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
+	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> redo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
+	public boolean useNet=true,moved=false;
+	public int cx,cy;//指针
+	public float ddx,ddy;//上次触摸
+	public int pointIndex=0;//path点
+	public int MODE=0;//触摸模式
+	public ColorView curColorView;//当前颜色
 	public CopyOnWriteArrayList<MView> mview=new CopyOnWriteArrayList<MView>();
-	protected MView curView;//逻辑view
-	public static VECfile vec;//文件
-	private SurfaceHolder holder;
-	private int MODE=0;//触摸模式
-	private ColorView curColorView;//当前颜色
-	private StringBuilder info=new StringBuilder();
-	private RenderThread render;
-	private File localFile=new File(MainActivity.path);
-	public static VECfile.Builder builder;
-	static{
-		builder=new VECfile.Builder();
-		vec=new VECfile(384,384,3.84f,null);
-	}
-	public Main(Context c)
+	public StringBuilder info=new StringBuilder();
+	public File localFile=new File(MainActivity.path);
+	public SurfaceView surface;
+	public Toast toast;
+	public RenderThread(SurfaceView surface)
 	{
-		super(c);
-		ctx=(MainActivity)c;
-		MView.ctx=ctx;
-		MView.main=this;
-		MView.dpi=ctx.getResources().getDisplayMetrics().density;
-		holder=getHolder();
-		holder.setFormat(PixelFormat.RGBA_8888);
-		holder.addCallback(this);
+		this.surface = surface;
+		this.ctx=(MainActivity)surface.getContext();
+		MView.render=this;
+		dpi=ctx.getResources().getDisplayMetrics().density;
+		icon=BitmapFactory.decodeResource(surface.getResources(),R.drawable.test);
+		initUi();
+		new Thread(){
+			@Override
+			public void run()
+			{
+				while(true)vec.onDraw();
+			}
+		}.start();
 	}
 	@Override
-	public void surfaceDestroyed(SurfaceHolder p1)
+	public void run()
 	{
-	}
-	@Override
-	public void surfaceChanged(SurfaceHolder p1, int p2, int p3, int p4)
-	{
-	}
-	@Override
-	public void surfaceCreated(SurfaceHolder p1)
-	{
-		if(!inited)
-		{
-			initUi();
-			inited=true;
-			render=new RenderThread();
-			render.start();
-		}
-	}
-	class RenderThread extends Thread
-	{
-		private int alpha=300;
-		private Bitmap icon=BitmapFactory.decodeResource(getResources(),R.drawable.test);
-		float mdeltax,mdeltay,mscale;
-		int fps=0;
-		@Override
-		public void run()
-		{
-			setName("Render");
-			Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
-			paint.setTextSize(px(18));
-			long time;
-			while(true)
+		setName("Render");
+		Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+		paint.setTextSize(MView.px(18));
+		long time;
+		Runtime ru=Runtime.getRuntime();
+		while(true)
+			try
+			{
+				time=System.nanoTime();
+				Canvas c=surface.getHolder().lockCanvas();
+				if(c!=null)
+				{
+					draw(c,paint);
+					surface.getHolder().unlockCanvasAndPost(c);
+				}
+				else Thread.sleep(20);
+				ram=(int)((ru.totalMemory()-ru.freeMemory())*100/ru.maxMemory());
+				if(alpha>0)alpha-=5;
+				time=System.nanoTime()-time;
+				if(time!=0)fps=(int)(1000000000/time+fps*3)/4;
+			}
+			catch(Throwable e)
+			{
 				try
 				{
-					time=System.nanoTime();
-					Canvas c=holder.lockCanvas();
-					if(c!=null)
-					{
-						draw(c,paint);
-						holder.unlockCanvasAndPost(c);
-					}
-					Thread.sleep(1);
-					if(alpha>0)alpha-=5;
-					time=System.nanoTime()-time;
-					if(time!=0)fps=(int)(1000000000/time+fps*3)/4;
+					ByteArrayOutputStream os=new ByteArrayOutputStream();
+					PrintWriter ps=new PrintWriter(os);
+					e.printStackTrace(ps);
+					ps.flush();
+					ps.close();
+					toast("render:"+os.toString());
+					Thread.sleep(5000);
 				}
-				catch(Throwable e)
+				catch (Exception e2)
 				{
-					toast(e);
-					break;
 				}
-		}
-		public void draw(Canvas c,Paint p)
-		{
-			lock();
-			clear(c);
-			vec(c,p);
-			net(c,p);
-			view(c,p);
-			load(c,p);
-		}
-		public void lock()
-		{
-			mdeltax=Main.this.deltax;
-			mdeltay=Main.this.deltay;
-			mscale=Main.this.scale;
-		}
-		public void clear(Canvas canvas)
-		{
-			canvas.drawColor(0xff666666);
-		}
-		private void vec(Canvas canvas,Paint paint)
-		{
-			Matrix m=new Matrix();
-			m.postTranslate(mdeltax,mdeltay);
-			m.postScale(mscale,mscale);
-			if(vec!=null&&vec.front!=null&&!vec.front.isRecycled())
-			{
-				vec.onDraw();
-				if(tmpShape!=null&&!vec.shapes.contains(tmpShape))tmpShape.onDraw(vec.can,vec.antialias,vec.dither,0,0,1,vec.dp);
-				canvas.drawBitmap(vec.front,m,paint);
 			}
-		}
-		private void view(Canvas canvas,Paint paint)
+	}
+	@Override
+	public void uncaughtException(Thread p1, Throwable p2)
+	{
+		try
 		{
-			paint.setStyle(Paint.Style.FILL);
+			FileOutputStream os=new FileOutputStream(ctx.path+"err.txt");
+			PrintWriter ps=new PrintWriter(os);
+			p2.printStackTrace(ps);
+			ps.flush();
+			ps.close();
+		}
+		catch (Exception e)
+		{}
+		System.exit(0);
+	}
+	public void draw(Canvas canvas,Paint paint)
+	{
+		canvas.drawColor(0xff666666);
+		Matrix m=new Matrix();
+		m.postTranslate(deltax,deltay);
+		m.postScale(scale,scale);
+		canvas.drawBitmap(vec.lock(tmpShape),m,paint);
+		vec.unlock();
+		if(useNet)
+		{
 			paint.setColor(0xff000000);
-			canvas.drawCircle((cx*vec.dp+mdeltax)*mscale,(cy*vec.dp+mdeltay)*mscale,10,paint);
-			paint.setTextAlign(Paint.Align.LEFT);
-			canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d",cx,cy,vec.shapes.size(),fps),0,paint.getTextSize()*3.2f,paint);
-			for(MView b:mview)b.onDraw(canvas);
+			paint.setStyle(Paint.Style.STROKE);
+			paint.setStrokeWidth(1);
+			for(float i=deltax*scale;i<(vec.width+deltax)*scale&&vec!=null;i+=vec.dp*scale)
+				if(i<0)continue;
+				else if(i>surface.getWidth())break;
+				else canvas.drawLine(i,deltay*scale,i,(vec.height+deltay)*scale,paint);
+			for(float j=deltay*scale;j<(vec.height+deltay)*scale&&vec!=null;j+=vec.dp*scale)
+				if(j<0)continue;
+				else if(j>surface.getHeight())break;
+				else canvas.drawLine(deltax*scale,j,(vec.width+deltax)*scale,j,paint);
+		}
+		paint.setStyle(Paint.Style.FILL);
+		paint.setColor(0xff000000);
+		canvas.drawCircle((cx*vec.dp+deltax)*scale,(cy*vec.dp+deltay)*scale,10,paint);
+		paint.setTextAlign(Paint.Align.LEFT);
+		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d",cx,cy,vec.shapes.size(),fps,ram),0,paint.getTextSize()*3.2f,paint);
+		for(MView b:mview)b.onDraw(canvas);
+		paint.setTextAlign(Paint.Align.CENTER);
+		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
+		if(alpha>0)
+		{
+			int alpha=this.alpha;
+			if(alpha>255)alpha=255;
+			int a=canvas.save(Canvas.ALL_SAVE_FLAG);
+			paint.setAlpha(alpha);
+			paint.setStyle(Paint.Style.FILL);
+			canvas.scale(alpha/512f+0.5f,alpha/512f+0.5f,surface.getWidth()/2,surface.getHeight()/2);
+			canvas.drawColor(MView.buttoncolor-0xff000000+alpha*0x1000000);
+			canvas.drawBitmap(icon,(surface.getWidth()-icon.getWidth())/2,(surface.getHeight()-icon.getHeight())/2,paint);
 			paint.setTextAlign(Paint.Align.CENTER);
-			canvas.drawText(info.toString(),getWidth()/2,getHeight()/2,paint);
-		}
-		private void load(Canvas canvas,Paint paint)
-		{
-			if(alpha>0)
-			{
-				int alpha=this.alpha;
-				if(alpha>255)alpha=255;
-				int a=canvas.save(Canvas.ALL_SAVE_FLAG);
-				paint.setAlpha(alpha);
-				paint.setStyle(Paint.Style.FILL);
-				canvas.scale(alpha/512f+0.5f,alpha/512f+0.5f,getWidth()/2,getHeight()/2);
-				canvas.drawColor(MView.buttoncolor-0xff000000+alpha*0x1000000);
-				canvas.drawBitmap(icon,(getWidth()-icon.getWidth())/2,(getHeight()-icon.getHeight())/2,paint);
-				paint.setTextAlign(Paint.Align.CENTER);
-				paint.setColor(0xff000000);
-				canvas.drawText("图标设计",getWidth()/2,getHeight()*0.6f,paint);
-				canvas.drawText("@Besto Design",getWidth()/2,getHeight()*0.7f,paint);
-				paint.setTextAlign(Paint.Align.LEFT);
-				paint.setAlpha(255);
-				canvas.restoreToCount(a);
-			}
-		}
-		private void net(Canvas canvas,Paint paint)
-		{
-			if(useNet)
-			{
-				paint.setColor(0xff000000);
-				paint.setStyle(Paint.Style.STROKE);
-				paint.setStrokeWidth(1);
-				for(float i=mdeltax*mscale;i<(vec.width+mdeltax)*mscale;i+=vec.dp*mscale)
-					if(i<0)continue;
-					else if(i>getWidth())break;
-					else canvas.drawLine(i,mdeltay*mscale,i,(vec.height+mdeltay)*mscale,paint);
-				for(float j=mdeltay*mscale;j<(vec.height+mdeltay)*mscale;j+=vec.dp*mscale)
-					if(j<0)continue;
-					else if(j>getHeight())break;
-					else canvas.drawLine(mdeltax*mscale,j,(vec.width+mdeltax)*mscale,j,paint);
-			}
+			paint.setColor(0xff000000);
+			canvas.drawText("图标设计",surface.getWidth()/2,surface.getHeight()*0.6f,paint);
+			canvas.drawText("@Besto Design",surface.getWidth()/2,surface.getHeight()*0.7f,paint);
+			paint.setTextAlign(Paint.Align.LEFT);
+			paint.setAlpha(255);
+			canvas.restoreToCount(a);
 		}
 	}
-	private void toast(final Object t)
+	public boolean touch(MotionEvent event)
 	{
-		new Handler(ctx.getMainLooper()).post(new Runnable(){
-				@Override
-				public void run()
+		try
+		{
+			setInfo();
+			int a=event.getAction();
+			if(event.getPointerCount()==1)
+			{
+				float x=event.getX(),y=event.getY();
+				if(a==MotionEvent.ACTION_DOWN)
 				{
-					Toast.makeText(ctx,t+"",0).show();
+					curView=null;
+					moved=false;
+					if(MODE==1)MODE=2;
+					else if(MODE==2)MODE=0;
+					else if(MODE==3)MODE=4;
+					else if(MODE==4)MODE=0;
+					else if(MODE==5)MODE=6;
+					else if(MODE==6)MODE=0;
+					if(tmpPoint!=null)tmpPoint2=new Point(tmpPoint);
+					else tmpPoint2=null;
+					for(int i=mview.size()-1;i!=-1;i--)
+					{
+						MView b=mview.get(i);
+						if(b.contains(x,y))
+						{
+							if(b instanceof Menu&&!((Menu)b).show)continue;
+							curView=b;
+							break;
+						}
+					}
 				}
-			});
+				if(curView!=null)curView.onTouchEvent(event);
+				else if(!moved)
+				{
+					cx=Math.round((x-deltax*scale)/(vec.dp*scale));
+					cy=Math.round((y-deltay*scale)/(vec.dp*scale));
+					if(MODE==2)
+					{
+						curColorView.color=vec.front.getPixel(Math.round(x/scale-deltax),Math.round(y/scale-deltay));
+						setTmpShape();
+					}
+					else if(MODE==4&&tmpShape!=null&&tmpShape.hasFlag(Shape.TYPE.PATH))
+					{
+						Point poi=new Point(cx,cy);
+						int size=tmpShape.pts.size();
+						Point poi2=tmpShape.pts.get(size-1);
+						if(size==1||!poi.equals(poi2))tmpShape.pts.add(poi);
+					}
+					else if(MODE==6)
+					{
+						if(a==MotionEvent.ACTION_DOWN)tmpPoint2=new Point(cx,cy);
+						else
+						{
+							colorShape.par[4]=cx-tmpPoint2.x;
+							colorShape.par[5]=cy-tmpPoint2.y;
+							setTmpShape();
+						}
+					}
+					else if(tmpPoint!=null)
+					{
+						tmpPoint.x=cx;
+						tmpPoint.y=cy;
+					}
+				}
+			}
+			else if(event.getPointerCount()==2)
+			{
+				float x1=event.getX(1),y1=event.getY(1);
+				float x=event.getX(0),y=event.getY(0);
+				if(!moved)
+				{
+					ddx=(x+x1)/2;
+					ddy=(y+y1)/2;
+					lpointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
+					lscale=scale;
+					if(tmpPoint!=null&&tmpPoint2!=null)
+					{
+						tmpPoint.x=tmpPoint2.x;
+						tmpPoint.y=tmpPoint2.y;
+					}
+					moved=true;
+				}
+				else
+				{
+					float pointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
+					float llsc=scale;
+					scale=lscale*pointLen/lpointLen;
+					float cx=(x+x1)/2f,cy=(y+y1)/2f;
+					deltax=(deltax-cx/llsc)+cx/scale;
+					deltay=(deltay-cy/llsc)+cy/scale;
+					deltax-=(ddx-(x+x1)/2)/scale;
+					deltay-=(ddy-(y+y1)/2)/scale;
+					ddx=(x+x1)/2;
+					ddy=(y+y1)/2;
+					setInfo((int)(scale*100f),"%");
+				}
+			}
+			else return false;
+		}
+		catch(Throwable e)
+		{
+			toast("event:"+e);
+		}
+		return true;
 	}
-	private void initUi()
+	public void initPosition()
 	{
-		vec.initPosition(this);
+		deltax=(surface.getWidth()-vec.width)/2;
+		deltay=(surface.getHeight()-vec.height)/2;
+		scale=1;
+	}
+	public void initUi()
+	{
+		initPosition();
 		mview.clear();
 		final Button[] bu=new Button[27];
-		final int bs=dip(getWidth()/9);
+		final int bs=MView.dip(surface.getWidth()/9);
 		final Menu[] me=new Menu[26];
 		Button.Event ev=new Button.Event(){
 			@Override
@@ -265,7 +342,7 @@ public class Main extends SurfaceView implements Callback
 					int k=0;
 					for(Shape s:vec.shapes)
 					{
-						m.addView(new ShapePreview(bs,0,bs*7,bs*2,k++,s,new Button.Event(){
+						m.addView(new ShapePreview(bs,0,bs*7,bs*3,k++,s,new Button.Event(){
 										  @Override
 										  public void e(Button b)
 										  {
@@ -287,6 +364,8 @@ public class Main extends SurfaceView implements Callback
 					m.measure();
 				}
 				else if(b==bu[6])useNet=!useNet;
+				else if(b==bu[7])undo();
+				else if(b==bu[8])redo();
 				else
 				{
 					for(int i=0;i<9;i++)
@@ -312,6 +391,40 @@ public class Main extends SurfaceView implements Callback
 							showMenu(me[i]);
 							break;
 						}
+				}
+			}
+			public void undo()
+			{
+				if(undo.size()==0)bu[7].color=MView.unavailablecolor;
+				else
+				{
+					bu[7].color=MView.buttoncolor;
+					CopyOnWriteArrayList<Shape> list=undo.get(undo.size()-1);
+					undo.remove(undo.size()-1);
+					CopyOnWriteArrayList<Shape> list2=new CopyOnWriteArrayList<Shape>();
+					for(Shape s:vec.shapes)list2.add(new Shape(s));
+					redo.add(list2);
+					bu[8].color=MView.buttoncolor;
+					if(undo.size()==0)bu[7].color=MView.unavailablecolor;
+					vec.shapes.clear();
+					for(Shape s:list)vec.shapes.add(new Shape(s));
+				}
+			}
+			public void redo()
+			{
+				if(redo.size()==0)bu[8].color=MView.unavailablecolor;
+				else
+				{
+					bu[8].color=MView.buttoncolor;
+					CopyOnWriteArrayList<Shape> list=redo.get(redo.size()-1);
+					redo.remove(redo.size()-1);
+					CopyOnWriteArrayList<Shape> list2=new CopyOnWriteArrayList<Shape>();
+					for(Shape s:vec.shapes)list2.add(new Shape(s));
+					undo.add(list2);
+					bu[7].color=MView.buttoncolor;
+					if(redo.size()==0)bu[8].color=MView.unavailablecolor;
+					vec.shapes.clear();
+					for(Shape s:list)vec.shapes.add(new Shape(s));
 				}
 			}
 			public void listfile(final List m)
@@ -361,7 +474,7 @@ public class Main extends SurfaceView implements Callback
 											if(v!=null)
 											{
 												vec=v;
-												vec.initPosition(Main.this);
+												initPosition();
 												builder.bgpath=vec.bgpath;
 												builder.backgcolor=vec.backgcolor;
 												m.show=false;
@@ -492,15 +605,11 @@ public class Main extends SurfaceView implements Callback
 									}
 									else if(i==9)
 									{
-										try
-										{
-											builder.setWidth(Integer.parseInt(((Edit)m.views.get(1)).txt));
-											builder.setHeight(Integer.parseInt(((Edit)m.views.get(3)).txt));
-											builder.setDp(((float)builder.getWidth())/Float.parseFloat(((Edit)m.views.get(5)).txt));
-											vec=builder.build(vec,Main.this);
-										}
-										catch(Throwable e)
-										{}
+										builder.setWidth(Integer.parseInt(((Edit)m.views.get(1)).txt));
+										builder.setHeight(Integer.parseInt(((Edit)m.views.get(3)).txt));
+										builder.setDp(((float)builder.getWidth())/Float.parseFloat(((Edit)m.views.get(5)).txt));
+										vec=builder.build();
+										initPosition();
 									}
 								}
 								else if(j==13)
@@ -516,16 +625,7 @@ public class Main extends SurfaceView implements Callback
 										if(index!=-1)
 										{
 											Shape sh=vec.shapes.get(index);
-											Shape sh2=new Shape(sh.flag);
-											sh2.pts.clear();
-											for(Point p:sh.pts)
-												sh2.pts.add(new Point(p));
-											int k=0;
-											for(int ii:sh.par)
-												sh2.par[k++]=ii;
-											sh2.flag=sh.flag;
-											sh2.txt=sh.txt;
-											vec.shapes.add(index,sh2);
+											vec.shapes.add(index,new Shape(sh));
 										}
 									}
 									else if(i==1)
@@ -533,9 +633,11 @@ public class Main extends SurfaceView implements Callback
 										int index=vec.shapes.indexOf(tmpShape);
 										if(index!=-1)
 										{
+											saveUndo();
 											vec.shapes.remove(index);
 											tmpShape=null;
 											for(int jj=0;jj<9;jj++)me[jj].show=false;
+											me[15].show=false;
 										}
 									}
 									else if(i==2)MODE=7;
@@ -543,8 +645,8 @@ public class Main extends SurfaceView implements Callback
 										for(int ik=tmpShape.hasFlag(Shape.TYPE.PATH)?1:0;ik<tmpShape.pts.size();ik++)
 										{
 											Point pp=tmpShape.pts.get(ik);
-											pp.x=vec.width-pp.x;
-											pp.y=vec.width-pp.y;
+											pp.x=(int)(vec.width/vec.dp)-pp.x;
+											//pp.y=(int)(vec.width/vec.dp)-pp.y;
 										}
 									else if(i==4)
 									{
@@ -591,10 +693,9 @@ public class Main extends SurfaceView implements Callback
 											vec.dither=((SeekBar)m.views.get(16)).getProgress()==0?false:true;
 											vec.backgcolor=builder.backgcolor;
 											vec.bgpath=builder.bgpath;
-											vec.recycle();
 											int w=Integer.parseInt(((Edit)m.views.get(5)).txt);
 											vec.init(w,Integer.parseInt(((Edit)m.views.get(7)).txt),(float)w/Float.parseFloat(((Edit)m.views.get(9)).txt));
-											vec.initPosition(Main.this);
+											initPosition();
 										}
 										catch(Throwable e)
 										{}
@@ -696,15 +797,15 @@ public class Main extends SurfaceView implements Callback
 			new Button(0,bs*8,bs,bs,"点",ev),
 			new Button(0,bs*9,bs,bs,"直线",ev),
 			new Button(0,bs*10,bs,bs,"文本",ev),
-			new Button(dip(getWidth())-bs,bs*2,bs,bs,"颜色",ev),
-			new Button(dip(getWidth())-bs,bs*3,bs,bs,"样式",ev),
-			new Button(dip(getWidth())-bs,bs*4,bs,bs,"XFERMODE",ev),
-			new Button(dip(getWidth())-bs,bs*5,bs,bs,"阴影",ev),
-			new Button(dip(getWidth())-bs,bs*6,bs,bs,"线样式",ev),
-			new Button(dip(getWidth())-bs,bs*7,bs,bs,"着色器",ev),
-			new Button(dip(getWidth())-bs,bs*8,bs,bs,"形状设置",ev),
-			new Button(dip(getWidth())-bs,bs*9,bs,bs,"线特效",ev),
-			new Button(dip(getWidth())-bs,bs*10,bs,bs,"笔触",ev));
+			new Button(bs*8,bs*2,bs,bs,"颜色",ev),
+			new Button(bs*8,bs*3,bs,bs,"样式",ev),
+			new Button(bs*8,bs*4,bs,bs,"XFERMODE",ev),
+			new Button(bs*8,bs*5,bs,bs,"阴影",ev),
+			new Button(bs*8,bs*6,bs,bs,"线样式",ev),
+			new Button(bs*8,bs*7,bs,bs,"着色器",ev),
+			new Button(bs*8,bs*8,bs,bs,"形状设置",ev),
+			new Button(bs*8,bs*9,bs,bs,"线特效",ev),
+			new Button(bs*8,bs*10,bs,bs,"笔触",ev));
 		addView(
 			new Menu(bs,bs*14,bs*3,bs*1,
 					 new Button(bs,bs*14,bs,bs,"点1",sv),
@@ -862,7 +963,7 @@ public class Main extends SurfaceView implements Callback
 		};
 		for(int i=0;i<9;i++)
 		{
-			cbt[i]=new ColorView(bs*i,dip(getHeight())-bs,bs,bs,ev2);
+			cbt[i]=new ColorView(bs*i,bs*15,bs,bs,ev2);
 			cbt[i].color=color[i];
 		}
 		curColorView=cbt[0];
@@ -876,8 +977,18 @@ public class Main extends SurfaceView implements Callback
 			pi.argb[i-1]=(SeekBar)me[18].views.get(i);
 			pi.argb[i-1].e=pi;
 		}
+		addView(toast=new Toast(0,bs*16,bs*9,bs));
 	}
-	private void showMenu(Menu m)
+	public void toast(String s){
+		if(toast!=null)toast.show(s);
+		mview.remove(toast);
+		mview.add(toast);
+	}
+	public void addView(MView... b)
+	{
+		for(MView bb:b)if(bb!=null)mview.add(bb);
+	}
+	public void showMenu(Menu m)
 	{
 		m.show=!m.show;
 		if(m.show)
@@ -886,277 +997,154 @@ public class Main extends SurfaceView implements Callback
 			mview.add(m);
 		}
 	}
-	private void setTmpShape()
+	public void saveUndo()
+	{
+		redo.clear();
+		CopyOnWriteArrayList<Shape> list=new CopyOnWriteArrayList<Shape>();
+		for(Shape s:vec.shapes)list.add(new Shape(s));
+		undo.add(list);
+	}
+	public void setTmpShape()
 	{
 		if(tmpShape!=null)tmpShape.set(colorShape);
 	}
-	private static int px(float i)
-	{
-		return (int)(i*ctx.getResources().getDisplayMetrics().density);
-	}
-	private static int dip(float i)
-	{
-		return (int)(i/ctx.getResources().getDisplayMetrics().density);
-	}
-	private void addView(MView... b)
-	{
-		for(MView bb:b)if(bb!=null)mview.add(bb);
-	}
-	private void removeView(MView... b)
-	{
-		for(MView bb:b)if(bb!=null)mview.remove(bb);
-	}
-	public void setPosition(float p0, float p1, float p2)
-	{
-		deltax=p0;
-		deltay=p1;
-		scale=p2;
-	}
-	@Override
-	public boolean onTouchEvent(MotionEvent event)
-	{
-		try
-		{
-			setInfo();
-			int a=event.getAction();
-			if(event.getPointerCount()==1)
-			{
-				float x=event.getX(),y=event.getY();
-				if(a==MotionEvent.ACTION_DOWN)
-				{
-					curView=null;
-					moved=false;
-					if(MODE==1)MODE=2;
-					else if(MODE==2)MODE=0;
-					else if(MODE==3)MODE=4;
-					else if(MODE==4)MODE=0;
-					else if(MODE==5)MODE=6;
-					else if(MODE==6)MODE=0;
-					if(tmpPoint!=null)tmpPoint2=new Point(tmpPoint);
-					else tmpPoint2=null;
-					for(int i=mview.size()-1;i!=-1;i--)
-					{
-						MView b=mview.get(i);
-						if(b.contains(x,y))
-						{
-							if(b instanceof Menu&&!((Menu)b).show)continue;
-							curView=b;
-							break;
-						}
-					}
-				}
-				if(curView!=null)curView.onTouchEvent(event);
-				else if(!moved)
-				{
-					cx=Math.round((x-deltax*scale)/(vec.dp*scale));
-					cy=Math.round((y-deltay*scale)/(vec.dp*scale));
-					if(MODE==2)
-					{
-						curColorView.color=vec.front.getPixel(Math.round(x/scale-deltax),Math.round(y/scale-deltay));
-						setTmpShape();
-					}
-					else if(MODE==4&&tmpShape!=null&&tmpShape.hasFlag(Shape.TYPE.PATH))
-					{
-						Point poi=new Point(cx,cy);
-						int size=tmpShape.pts.size();
-						Point poi2=tmpShape.pts.get(size-1);
-						if(size==1||!poi.equals(poi2))tmpShape.pts.add(poi);
-					}
-					else if(MODE==6)
-					{
-						if(a==MotionEvent.ACTION_DOWN)tmpPoint2=new Point(cx,cy);
-						else
-						{
-							colorShape.par[4]=cx-tmpPoint2.x;
-							colorShape.par[5]=cy-tmpPoint2.y;
-							setTmpShape();
-						}
-					}
-					else if(tmpPoint!=null)
-					{
-						tmpPoint.x=cx;
-						tmpPoint.y=cy;
-					}
-				}
-			}
-			else if(event.getPointerCount()==2)
-			{
-				float x1=event.getX(1),y1=event.getY(1);
-				float x=event.getX(0),y=event.getY(0);
-				if(!moved)
-				{
-					ddx=(x+x1)/2;
-					ddy=(y+y1)/2;
-					lpointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
-					lscale=scale;
-					if(tmpPoint!=null&&tmpPoint2!=null)
-					{
-						tmpPoint.x=tmpPoint2.x;
-						tmpPoint.y=tmpPoint2.y;
-					}
-					moved=true;
-				}
-				else
-				{
-					float pointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
-					float llsc=scale;
-					scale=lscale*pointLen/lpointLen;
-					float cx=(x+x1)/2f,cy=(y+y1)/2f;
-					deltax=(deltax-cx/llsc)+cx/scale;
-					deltay=(deltay-cy/llsc)+cy/scale;
-					deltax-=(ddx-(x+x1)/2)/scale;
-					deltay-=(ddy-(y+y1)/2)/scale;
-					ddx=(x+x1)/2;
-					ddy=(y+y1)/2;
-					setInfo((int)(scale*100f),"%");
-				}
-			}
-			else return false;
-		}
-		catch(Throwable e)
-		{
-			toast(e);
-		}
-		return true;
-	}
-	private void setInfo(Object... o)
+	public void setInfo(Object... o)
 	{
 		info.delete(0,info.length());
 		for(Object c:o)info.append(c);
 	}
 	@Override
-    public InputConnection onCreateInputConnection(EditorInfo outAttrs)
-    {
-        outAttrs.imeOptions = EditorInfo.IME_FLAG_NO_EXTRACT_UI;
-        outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
-        return new InputConnection(){
-            @Override
-            public CharSequence getTextBeforeCursor(int p1, int p2)
-            {
-                return null;
-            }
-            @Override
-            public CharSequence getTextAfterCursor(int p1, int p2)
-            {
-                return null;
-            }
-            @Override
-            public CharSequence getSelectedText(int p1)
-            {
-                return null;
-            }
-            @Override
-            public int getCursorCapsMode(int p1)
-            {
-                return 0;
-            }
-            @Override
-            public ExtractedText getExtractedText(ExtractedTextRequest p1, int p2)
-            {
-                return null;
-            }
-            @Override
-            public boolean deleteSurroundingText(int p1, int p2)
-            {
-                return false;
-            }
-            @Override
-            public boolean setComposingText(CharSequence p1, int p2)
-            {
-                return false;
-            }
-            @Override
-            public boolean setComposingRegion(int p1, int p2)
-            {
-                return false;
-            }
-            @Override
-            public boolean finishComposingText()
-            {
-                return false;
-            }
-            @Override
-            public boolean commitText(CharSequence p1, int p2)
-            {
-				if(curView!=null&&curView instanceof Edit)((Edit)curView).txt+=p1.toString();
-                return false;
-            }
-            @Override
-            public boolean commitCompletion(CompletionInfo p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean commitCorrection(CorrectionInfo p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean setSelection(int p1, int p2)
-            {
-                return false;
-            }
-            @Override
-            public boolean performEditorAction(int p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean performContextMenuAction(int p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean beginBatchEdit()
-            {
-                return false;
-            }
-            @Override
-            public boolean endBatchEdit()
-            {
-                return false;
-            }
-            @Override
-            public boolean sendKeyEvent(KeyEvent event)
-            {
-                try
-                {
-                    if (event.getAction() == KeyEvent.ACTION_DOWN&&curView!=null&&curView instanceof Edit)
-                    {
-                        if (event.getKeyCode() == KeyEvent.KEYCODE_DEL)
-                        {
-							String t=((Edit)curView).txt;
-							if(t.length()>0)t=t.substring(0,t.length()-1);
-							((Edit)curView).txt=t;
-						}
-                    }
-                    return true;
-                }
-                catch(Throwable e)
-                {
-                }
-                return false;
-            }
-            @Override
-            public boolean clearMetaKeyStates(int p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean reportFullscreenMode(boolean p1)
-            {
-                return false;
-            }
-            @Override
-            public boolean performPrivateCommand(String p1, Bundle p2)
-            {
-                return false;
-            }
-            @Override
-            public boolean requestCursorUpdates(int p1)
-            {
-                return false;
-            }
-        };
-    }
+	public CharSequence getTextBeforeCursor(int p1, int p2)
+	{
+		return null;
+	}
+	@Override
+	public CharSequence getTextAfterCursor(int p1, int p2)
+	{
+		return null;
+	}
+	@Override
+	public CharSequence getSelectedText(int p1)
+	{
+		return null;
+	}
+	@Override
+	public int getCursorCapsMode(int p1)
+	{
+		return 0;
+	}
+	@Override
+	public ExtractedText getExtractedText(ExtractedTextRequest p1, int p2)
+	{
+		return null;
+	}
+	@Override
+	public boolean deleteSurroundingText(int p1, int p2)
+	{
+		return false;
+	}
+	@Override
+	public boolean setComposingText(CharSequence p1, int p2)
+	{
+		return false;
+	}
+	@Override
+	public boolean setComposingRegion(int p1, int p2)
+	{
+		return false;
+	}
+	@Override
+	public boolean finishComposingText()
+	{
+		return false;
+	}
+	@Override
+	public boolean commitText(CharSequence p1, int p2)
+	{
+		if(curView!=null&&curView instanceof Edit)((Edit)curView).txt+=p1.toString();
+		return false;
+	}
+	@Override
+	public boolean commitCompletion(CompletionInfo p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean commitCorrection(CorrectionInfo p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean setSelection(int p1, int p2)
+	{
+		return false;
+	}
+	@Override
+	public boolean performEditorAction(int p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean performContextMenuAction(int p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean beginBatchEdit()
+	{
+		return false;
+	}
+	@Override
+	public boolean endBatchEdit()
+	{
+		return false;
+	}
+	@Override
+	public boolean sendKeyEvent(KeyEvent event)
+	{
+		try
+		{
+			if (event.getAction() == KeyEvent.ACTION_DOWN&&curView!=null&&curView instanceof Edit)
+			{
+				if (event.getKeyCode() == KeyEvent.KEYCODE_DEL)
+				{
+					String t=((Edit)curView).txt;
+					if(t.length()>0)t=t.substring(0,t.length()-1);
+					((Edit)curView).txt=t;
+				}
+			}
+			return true;
+		}
+		catch(Throwable e)
+		{
+		}
+		return false;
+	}
+	@Override
+	public boolean clearMetaKeyStates(int p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean reportFullscreenMode(boolean p1)
+	{
+		return false;
+	}
+	@Override
+	public boolean performPrivateCommand(String p1, Bundle p2)
+	{
+		return false;
+	}
+	@Override
+	public boolean requestCursorUpdates(int p1)
+	{
+		return false;
+	}
+	public void showIME(){
+		surface.setFocusableInTouchMode(true);
+		InputMethodManager imm = (InputMethodManager)ctx
+			.getSystemService(Context.INPUT_METHOD_SERVICE);
+		imm.showSoftInput(surface,InputMethodManager.SHOW_IMPLICIT);
+		
+	}
 }
