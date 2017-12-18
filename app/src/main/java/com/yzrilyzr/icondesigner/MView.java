@@ -11,13 +11,13 @@ public class MView extends RectF
 {
 	public static int
 	shadowcolor=0x00555555,
-	buttoncolor=0xff40ffe0,
-	menucolor=0x90a0e0a0,
+	buttoncolor=0xff00ffa0,
+	menucolor=0x70a0ffe0,
 	editcolor=0xffffffff,
-	buttonselectedcolor=0xffffff66,
-	seekbarcolor=0xff33ff66,
+	buttonselectedcolor=0xffff5050,
+	seekbarcolor=0xff00ffa0,
 	unavailablecolor=0xff909090,
-	toastcolor=0xff66ccff;
+	toastcolor=0xff00ffa0;
 	public static RenderThread render;
 	public MView parent;
 	public void onDraw(Canvas c)

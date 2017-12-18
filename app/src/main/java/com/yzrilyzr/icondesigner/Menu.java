@@ -30,7 +30,7 @@ public class Menu extends MView
 	public void onDraw(Canvas c)
 	{
 		if(!show)return;
-		c.drawRoundRect(this,px(5),px(5),paint);
+		c.drawRect(this,paint);
 		for(MView v:views)v.onDraw(c);
 	}
 

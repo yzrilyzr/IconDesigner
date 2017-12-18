@@ -32,12 +32,12 @@ public class List extends Menu
 	{
 		if(!show)return;
 		p.setColor(menucolor);
-		c.drawRoundRect(this,px(5),px(5),p);
-		p.setColor(0xff000000);
-		int l=c.saveLayer(this,p,Canvas.ALL_SAVE_FLAG);
+		c.drawRect(this,p);
+		c.save();
+		c.clipRect(this);
 		if(vy!=0&&!touch)
 		{
-			yy+=(vy*=0.9)*10f;
+			yy+=(vy*=0.95)*5f;
 			if(vy>-0.1&&vy<0.1)
 			{vy=0;}
 		}
@@ -66,7 +66,7 @@ public class List extends Menu
 			float sy=top-(yy-top)/ht*height();
 			c.drawRect(right-10,sy,right,sy+height()*height()/ht,p);
 		}
-		c.restoreToCount(l);
+		c.restore();
 	}
 	@Override
 	public void onTouchEvent(MotionEvent e)

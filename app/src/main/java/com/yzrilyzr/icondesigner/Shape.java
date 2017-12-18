@@ -180,7 +180,7 @@ public class Shape
 		sp.setStrokeWidth((float)par[3]/100f*dp*sc);
 		sp.setPathEffect(pathEffect);
 		sp.setShader(shader);
-		sp.setShadowLayer((float)par[6]/100f,(par[4]*dp+xx)*sc,(par[5]*dp+yy)*sc,par[7]);
+		sp.setShadowLayer((float)par[6]/100f*dp*sc,(par[4]*dp+xx)*sc,(par[5]*dp+yy)*sc,par[7]);
 
 		if(hasFlag(SHAPEPAR.NEWLAYER))c.save();
 		PorterDuff.Mode xm=null;

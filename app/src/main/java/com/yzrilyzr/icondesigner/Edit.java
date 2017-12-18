@@ -20,16 +20,9 @@ public class Edit extends MView
 	}
 	public void onDraw(Canvas c)
 	{
-		if(selected){
-			pa.setStyle(Paint.Style.STROKE);
-			pa.setColor(buttonselectedcolor);
-			c.drawRoundRect(this,px(5),px(5),pa);
-		}
 		pa.setColor(color);
 		pa.setStyle(Paint.Style.FILL);
-		//pa.setShadowLayer(px(1),0,px(3),shadowcolor);
-		c.drawRoundRect(this,px(5),px(5),pa);
-		//pa.setShadowLayer(0,0,0,0);
+		c.drawRect(this,pa);
 		pa.setColor(0xff000000);
 		c.drawText(txt,left+px(3),(bottom+top)/2+pa.getTextSize()/2,pa);
 	}

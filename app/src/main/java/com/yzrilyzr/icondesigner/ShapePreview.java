@@ -45,9 +45,7 @@ public class ShapePreview extends Button
 		pa.setColor(0xff000000);
 		c.drawText("上层",up.centerX(),up.centerY()+pa.getTextSize()/2,pa);
 		c.drawText("下层",down.centerX(),down.centerY()+pa.getTextSize()/2,pa);
-		int l=c.saveLayer(this,pa,Canvas.ALL_SAVE_FLAG);
 		sh.onDraw(c,render.vec.antialias,render.vec.dither,left/scale,top/scale,scale,render.vec.dp,pp);
-		c.restoreToCount(l);
 	}
 
 	@Override

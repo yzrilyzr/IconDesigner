@@ -34,11 +34,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public VECfile.Builder builder=new VECfile.Builder();
 	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
 	public Point tmpPoint,tmpPoint2;//临时和回退
-	public int alpha=300;
+	public int alpha=255;
 	public MView curView;//逻辑view
 	public Bitmap icon;
-	public int ram=0;
-	public int fps=0;
+	public int ram=0,fps=0;
 	public float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
 	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> undo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
 	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> redo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
@@ -59,13 +58,41 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		this.ctx=(MainActivity)surface.getContext();
 		MView.render=this;
 		dpi=ctx.getResources().getDisplayMetrics().density;
-		icon=BitmapFactory.decodeResource(surface.getResources(),R.drawable.test);
+		icon=BitmapFactory.decodeResource(surface.getResources(),R.drawable.icon);
+		Matrix m=new Matrix();
+		m.postScale((float)MView.px(80)/(float)icon.getWidth(),(float)MView.px(80)/(float)icon.getHeight());
+		icon=Bitmap.createBitmap(icon,0,0,icon.getWidth(),icon.getHeight(),m,false);
+		Bitmap la=Bitmap.createBitmap(surface.getWidth(),surface.getHeight(),Bitmap.Config.ARGB_8888);
+		Canvas canvas=new Canvas(la);
+		Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+		paint.setTextSize(MView.px(18));
+		canvas.drawColor(MView.buttoncolor);
+		canvas.drawBitmap(icon,(surface.getWidth()-icon.getWidth())/2,(surface.getHeight()-icon.getHeight())/2,paint);
+		paint.setTextAlign(Paint.Align.CENTER);
+		paint.setColor(0xff000000);
+		canvas.drawText("图标设计",surface.getWidth()/2,surface.getHeight()*0.6f,paint);
+		canvas.drawText("@Besto Design",surface.getWidth()/2,surface.getHeight()*0.7f,paint);
+		icon.recycle();
+		icon=la;
 		initUi();
 		new Thread(){
 			@Override
 			public void run()
 			{
-				while(true)vec.onDraw();
+				while(true)
+					try
+					{
+						vec.onDraw();
+					}
+					catch(Throwable e)
+					{
+						try
+						{
+							Thread.sleep(100);
+						}
+						catch (InterruptedException e2)
+						{}
+					}
 			}
 		}.start();
 	}
@@ -151,27 +178,23 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		paint.setColor(0xff000000);
 		canvas.drawCircle((cx*vec.dp+deltax)*scale,(cy*vec.dp+deltay)*scale,10,paint);
 		paint.setTextAlign(Paint.Align.LEFT);
-		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d",cx,cy,vec.shapes.size(),fps,ram),0,paint.getTextSize()*3.2f,paint);
+		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d,HA:%b",cx,cy,vec.shapes.size(),fps,ram,canvas.isHardwareAccelerated()),0,paint.getTextSize()*3.2f,paint);
 		for(MView b:mview)b.onDraw(canvas);
 		paint.setTextAlign(Paint.Align.CENTER);
 		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
 		if(alpha>0)
 		{
-			int alpha=this.alpha;
-			if(alpha>255)alpha=255;
-			int a=canvas.save(Canvas.ALL_SAVE_FLAG);
-			paint.setAlpha(alpha);
-			paint.setStyle(Paint.Style.FILL);
-			canvas.scale(alpha/512f+0.5f,alpha/512f+0.5f,surface.getWidth()/2,surface.getHeight()/2);
-			canvas.drawColor(MView.buttoncolor-0xff000000+alpha*0x1000000);
-			canvas.drawBitmap(icon,(surface.getWidth()-icon.getWidth())/2,(surface.getHeight()-icon.getHeight())/2,paint);
-			paint.setTextAlign(Paint.Align.CENTER);
-			paint.setColor(0xff000000);
-			canvas.drawText("图标设计",surface.getWidth()/2,surface.getHeight()*0.6f,paint);
-			canvas.drawText("@Besto Design",surface.getWidth()/2,surface.getHeight()*0.7f,paint);
-			paint.setTextAlign(Paint.Align.LEFT);
-			paint.setAlpha(255);
-			canvas.restoreToCount(a);
+			m=new Matrix();
+			if(alpha<150){
+				float k=Math.max(alpha,130);
+				m.postScale(k/150f,k/150f);
+				m.postTranslate(icon.getWidth()/2f*(1f-k/150f),icon.getHeight()/2f*(1f-k/150f));
+			}
+			if(alpha<100){
+				m.postTranslate(0,(alpha-100f)/100f*icon.getHeight());
+				paint.setAlpha((int)(alpha*2.55f));
+			}
+			canvas.drawBitmap(icon,m,paint);
 		}
 	}
 	public boolean touch(MotionEvent event)
@@ -979,7 +1002,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		}
 		addView(toast=new Toast(0,bs*16,bs*9,bs));
 	}
-	public void toast(String s){
+	public void toast(String s)
+	{
 		if(toast!=null)toast.show(s);
 		mview.remove(toast);
 		mview.add(toast);
@@ -991,11 +1015,11 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public void showMenu(Menu m)
 	{
 		m.show=!m.show;
-		if(m.show)
+		/*if(m.show)
 		{
 			mview.remove(m);
 			mview.add(m);
-		}
+		}*/
 	}
 	public void saveUndo()
 	{
@@ -1140,11 +1164,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	{
 		return false;
 	}
-	public void showIME(){
+	public void showIME()
+	{
 		surface.setFocusableInTouchMode(true);
 		InputMethodManager imm = (InputMethodManager)ctx
 			.getSystemService(Context.INPUT_METHOD_SERVICE);
 		imm.showSoftInput(surface,InputMethodManager.SHOW_IMPLICIT);
-		
+
 	}
 }

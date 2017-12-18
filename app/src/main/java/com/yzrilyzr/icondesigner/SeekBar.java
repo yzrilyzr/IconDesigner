@@ -41,7 +41,7 @@ public class SeekBar extends MView
 	{
 		p.setColor(seekbarcolor);
 		RectF r=new RectF(left+padd*2,centerY()-padd,right-padd*2,centerY()+padd);
-		c.drawRoundRect(r,padd,padd,p);
+		c.drawRect(r,p);
 		p.setColor(0xffffffff);
 		c.drawCircle(tt?kx:r.left+r.width()*(float)progress/(float)max,r.centerY(),padd*2,p);
 	}

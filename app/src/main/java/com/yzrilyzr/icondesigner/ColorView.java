@@ -27,15 +27,15 @@ public class ColorView extends MView
 	{
 		pa.setColor(color);
 		pa.setStyle(Paint.Style.FILL);
-		c.drawRoundRect(this,px(5),px(5),pa);
+		c.drawRect(this,pa);
 		if(touch){
 			pa.setColor(color);
-			c.drawRoundRect(re,px(5),px(5),pa);
+			c.drawRect(re,pa);
 		}
 		if(selected){
 			pa.setStyle(Paint.Style.STROKE);
 			pa.setColor(buttonselectedcolor);
-			c.drawRoundRect(this,px(5),px(5),pa);
+			c.drawRect(this,pa);
 		}
 	}
 	@Override
