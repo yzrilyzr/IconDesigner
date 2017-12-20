@@ -9,6 +9,7 @@ import android.graphics.Point;
 import com.yzrilyzr.icondesigner.Shape;
 import java.util.concurrent.CopyOnWriteArrayList;
 import android.graphics.BitmapFactory;
+import java.util.Iterator;
 
 public class VECfile
 {
@@ -128,7 +129,7 @@ public class VECfile
 		{
 			DataOutputStream os=new DataOutputStream(new FileOutputStream(path));
 			os.writeBytes("VEC");
-			os.writeByte(3);
+			os.writeByte(4);
 			os.writeUTF(name);
 			os.writeUTF(comm);
 			os.writeInt(width);
@@ -144,6 +145,15 @@ public class VECfile
 				 public PathEffect pathEffect=null;*/
 				os.writeLong(s.flag);
 				if(s.hasFlag(Shape.TYPE.TEXT))os.writeUTF(s.txt);
+				if(s.hasFlag(Shape.TYPE.PATH)){
+					Iterator it=s.ppt.keySet().iterator();
+					os.writeInt(s.ppt.size());
+					while(it.hasNext()){
+						String k=(String)it.next();
+						os.writeInt(Integer.parseInt(k));
+						os.write(Byte.parseByte(s.ppt.get(k)));
+					}
+				}
 				os.writeInt(s.pts.size());
 				for(Point po:s.pts)
 				{
@@ -168,9 +178,59 @@ public class VECfile
 		os.read(h);
 		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
 		else if(h[3]==2)return readFileV2(path);
-		else if(h[3]==3)
+		else if(h[3]==3)return readFileV3(path);
+		else if(h[3]==4)
 		{
 			v.name=os.readUTF();
+			v.comm=os.readUTF();
+			v.width=os.readInt();
+			v.height=os.readInt();
+			v.antialias=os.readBoolean();
+			v.dither=os.readBoolean();
+			v.backgcolor=os.readInt();
+			v.dp=os.readFloat();
+			v.shapes.clear();
+			int siz=os.readInt();
+			for(int i=0;i<siz;i++)
+			{
+				Shape s=new Shape(0);
+				s.flag=os.readLong();
+				if(s.hasFlag(Shape.TYPE.TEXT))s.txt=os.readUTF();
+				if(s.hasFlag(Shape.TYPE.PATH)){
+					int siz2=os.readInt();
+					for(int ik=0;ik<siz2;ik++)
+					s.ppt.put(Integer.toString(os.readInt()),Integer.toString(os.read()));
+				}
+				
+				int ptsl=os.readInt();
+				s.pts.clear();
+				for(int u=0;u<ptsl;u++)
+				{
+					Point po=new Point();
+					po.x=os.readInt();
+					po.y=os.readInt();
+					s.pts.add(po);
+				}
+				for(int u=0;u<8;u++)
+				{
+					s.par[u]=os.readInt();
+				}
+				v.shapes.add(s);
+			}
+			if(os.available()>0)v.bgpath=os.readUTF();
+			os.close();
+			v.init(v.width,v.height,v.dp);
+			return v;
+		}
+		else return null;
+	}
+	public static VECfile readFileV3(String path)throws IllegalStateException,IOException
+	{
+		VECfile v=new VECfile();
+		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		byte[] h=new byte[4];
+		os.read(h);
+		v.name=os.readUTF();
 			v.comm=os.readUTF();
 			v.width=os.readInt();
 			v.height=os.readInt();
@@ -204,8 +264,6 @@ public class VECfile
 			os.close();
 			v.init(v.width,v.height,v.dp);
 			return v;
-		}
-		else return null;
 	}
 	public static VECfile readFileV2(String path)throws IllegalStateException,IOException
 	{

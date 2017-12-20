@@ -3,6 +3,8 @@ package com.yzrilyzr.icondesigner;
 import android.graphics.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Shape
 {
@@ -17,6 +19,7 @@ public class Shape
 		0,
 		0xff000000
 	};
+	public ConcurrentHashMap<String,String> ppt=new ConcurrentHashMap<String,String>();
 	//0:color,1:strokecolor,2:miter,3:strokewidth,4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
 	public long flag=0;
 	public Shader shader=null;
@@ -320,59 +323,42 @@ public class Shape
 			tp.setTextSize(16);
 			Path pa=new Path();
 			Point a=pts.get(0);
-			if(a.y!=0)
+			if(pts.size()>1)
 			{
-				if(pts.size()>1)
-				{
-					ArrayList<PointF> poi=new ArrayList<PointF>();
-					Point t=pts.get(1),t2=null;
-					pa.moveTo((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
-					for(int i=1;i<pts.size();i++)
-					{
-						t=pts.get(i);
-						t2=null;
-						if(i+1<pts.size())t2=pts.get(i+1);
-						poi.add(new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc));
-						if(MainView.render.tmpShape==this&&i!=0&&i!=pts.size())
-						{
-							if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
-							else tp.setColor(0xff000000);
-							c.drawText(i+"",(t.x*dp+xx)*sc,(t.y*dp+yy)*sc,tp);
-						}
-						if(t2!=null&&t.equals(t2.x,t2.y))
-						{
-							if(poi.size()>0)
-							{
-								poi.add(0,poi.get(0));
-								poi.add(poi.get(poi.size()-1));
-							}
-							Catmull_Rom(poi,a.y,pa);
-							poi.clear();
-						}
-					}
-					if(poi.size()>0)
-					{
-						poi.add(0,poi.get(0));
-						poi.add(poi.get(poi.size()-1));
-					}
-					Catmull_Rom(poi,a.y,pa);
-					poi.clear();poi=null;
-				}
-			}
-			else
+				ArrayList<PointF> poi=new ArrayList<PointF>();
 				for(int i=1;i<pts.size();i++)
 				{
 					Point t=pts.get(i);
-					if(i==1)pa.moveTo((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
-					else pa.lineTo((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
+					PointF pf=new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
 					if(MainView.render.tmpShape==this)
 					{
 						if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
 						else tp.setColor(0xff000000);
-						c.drawText(i+"",(t.x*dp+xx)*sc,(t.y*dp+yy)*sc,tp);
+						c.drawText(i+"",pf.x,pf.y,tp);
 					}
+					String by=ppt.get(i+"");
+					if("1".equals(by))
+					{
+						poi.add(pf);
+						Catmull_Rom(poi,a.y,pa);
+						if(a.x==1)pa.close();
+						poi.clear();
+						poi.add(pf);
+					}
+					else if("2".equals(by)||i==1)
+					{
+						Catmull_Rom(poi,a.y,pa);
+						if(a.x==1)pa.close();
+						poi.clear();
+						poi.add(pf);
+						pa.moveTo(pf.x,pf.y);
+					}
+					else poi.add(pf);
 				}
-			if(a.x==1)pa.close();
+				Catmull_Rom(poi,a.y,pa);
+				poi.clear();poi=null;
+				if(a.x==1)pa.close();
+			}
 			if(st())fill(sp);
 			else
 			{
@@ -441,7 +427,8 @@ public class Shape
 		for(int i=0;i<len;i++)
 			pts.add(new Point(0,0));
 	}
-	public Shape(Shape s){
+	public Shape(Shape s)
+	{
 		this(s.flag);
 		pts.clear();
 		for(Point p:s.pts)
@@ -461,26 +448,28 @@ public class Shape
 	}
 	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
 	{
-		if (point.size()<4||cha==0||cha>10000)
+		if(cha==0)for(PointF p:point)path.lineTo(p.x,p.y);
+		else if (point.size()>1&&cha<10000)
 		{
-			return;
-		}
-		for (int index = 1; index < point.size() - 2; index++)
-		{
-			PointF p0 = point.get(index - 1);
-			PointF p1 = point.get(index);
-			PointF p2 = point.get(index + 1);
-			PointF p3 = point.get(index + 2);
-			for (int i = 1; i <= cha; i++)
+			point.add(0,point.get(0));
+			point.add(point.get(point.size()-1));
+			for (int index = 1; index < point.size() - 2; index++)
 			{
-				float t = i * (1.00f / cha);
-				float tt = t * t;
-				float ttt = tt * t;
-				float x = (float) (0.5 * (2 * p1.x + (p2.x - p0.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * tt + (3 * p1.x - p0.x - 3 * p2.x + p3.x)* ttt));
-				float y = (float) (0.5 * (2 * p1.y + (p2.y - p0.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * tt + (3 * p1.y - p0.y - 3 * p2.y + p3.y)* ttt));
-				path.lineTo(x,y);
+				PointF p0 = point.get(index - 1);
+				PointF p1 = point.get(index);
+				PointF p2 = point.get(index + 1);
+				PointF p3 = point.get(index + 2);
+				for (int i = 1; i <= cha; i++)
+				{
+					float t = i * (1.00f / cha);
+					float tt = t * t;
+					float ttt = tt * t;
+					float x = (float) (0.5 * (2 * p1.x + (p2.x - p0.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * tt + (3 * p1.x - p0.x - 3 * p2.x + p3.x)* ttt));
+					float y = (float) (0.5 * (2 * p1.y + (p2.y - p0.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * tt + (3 * p1.y - p0.y - 3 * p2.y + p3.y)* ttt));
+					path.lineTo(x,y);
+				}
 			}
+			path.lineTo(point.get(point.size() - 1).x, point.get(point.size() - 1).y);
 		}
-		path.lineTo(point.get(point.size() - 1).x, point.get(point.size() - 1).y);
 	}
 }

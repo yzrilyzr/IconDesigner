@@ -18,13 +18,12 @@ import com.yzrilyzr.icondesigner.R;
 import com.yzrilyzr.icondesigner.Shape;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
 
 public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
@@ -33,7 +32,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public VECfile vec=new VECfile(384,384,3.84f,null);//文件
 	public VECfile.Builder builder=new VECfile.Builder();
 	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
-	public Point tmpPoint,tmpPoint2;//临时和回退
+	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退
 	public int alpha=255;
 	public MView curView;//逻辑view
 	public Bitmap icon;
@@ -178,23 +177,27 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		paint.setColor(0xff000000);
 		canvas.drawCircle((cx*vec.dp+deltax)*scale,(cy*vec.dp+deltay)*scale,10,paint);
 		paint.setTextAlign(Paint.Align.LEFT);
-		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d,HA:%b",cx,cy,vec.shapes.size(),fps,ram,canvas.isHardwareAccelerated()),0,paint.getTextSize()*3.2f,paint);
+		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d",cx,cy,vec.shapes.size(),fps,ram),0,paint.getTextSize()*3.2f,paint);
 		for(MView b:mview)b.onDraw(canvas);
 		paint.setTextAlign(Paint.Align.CENTER);
 		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
 		if(alpha>0)
 		{
+			useNet=false;
 			m=new Matrix();
-			if(alpha<150){
+			if(alpha<150)
+			{
 				float k=Math.max(alpha,130);
 				m.postScale(k/150f,k/150f);
 				m.postTranslate(icon.getWidth()/2f*(1f-k/150f),icon.getHeight()/2f*(1f-k/150f));
 			}
-			if(alpha<100){
+			if(alpha<100)
+			{
 				m.postTranslate(0,(alpha-100f)/100f*icon.getHeight());
 				paint.setAlpha((int)(alpha*2.55f));
 			}
 			canvas.drawBitmap(icon,m,paint);
+			paint.setAlpha(255);
 		}
 	}
 	public boolean touch(MotionEvent event)
@@ -248,11 +251,11 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					}
 					else if(MODE==6)
 					{
-						if(a==MotionEvent.ACTION_DOWN)tmpPoint2=new Point(cx,cy);
+						if(a==MotionEvent.ACTION_DOWN)tmpPoint3=new Point(cx,cy);
 						else
 						{
-							colorShape.par[4]=cx-tmpPoint2.x;
-							colorShape.par[5]=cy-tmpPoint2.y;
+							colorShape.par[4]=cx-tmpPoint3.x;
+							colorShape.par[5]=cy-tmpPoint3.y;
 							setTmpShape();
 						}
 					}
@@ -574,7 +577,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									else if(i<9)tmpShape.setFlag(Shape.TEXT.DEFAULT_TYPE*(long)Math.pow(2,i-4),Shape.TEXT.ALL_TYPEFACE);
 									else if(i>8)tmpShape.setFlag(Shape.TEXT.LEFT*(long)Math.pow(2,i-9),Shape.TEXT.ALL_ALIGN);
 								}
-								else if(tmpShape.hasFlag(Shape.TYPE.PATH)&&i<7)
+								else if(tmpShape.hasFlag(Shape.TYPE.PATH)&&i!=7)
 								{
 									if(i==0)pointIndex--;
 									else if(i==1)pointIndex++;
@@ -587,6 +590,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										else po.x=0;
 									}
 									else if(i==5)MODE=3;
+									else if(i==6);
+									else if(i==9)tmpShape.ppt.remove(Integer.toString(pointIndex));
+									else if(i==10)tmpShape.ppt.put(Integer.toString(pointIndex),"1");
+									else if(i==11)tmpShape.ppt.put(Integer.toString(pointIndex),"2");
 									if(pointIndex<1)pointIndex=1;
 									if(pointIndex>tmpShape.pts.size()-1)pointIndex=tmpShape.pts.size()-1;
 									if(pointIndex<tmpShape.pts.size()&&pointIndex>0)
@@ -854,16 +861,19 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*2,bs*14,bs,bs,"右下",sv),
 					 new Button(bs*3,bs*14,bs,bs,"圆角",sv),
 					 new Button(bs*4,bs*14,bs,bs,"确定",sv)),
-			new Menu(bs,bs*11,bs*6,bs*4,
+			new Menu(bs,bs*11,bs*7,bs*4,
 					 new Button(bs,bs*11,bs,bs,"上个",sv),
 					 new Button(bs*2,bs*11,bs,bs,"下个",sv),
 					 new Button(bs,bs*12,bs,bs,"添加",sv),
 					 new Button(bs*2,bs*12,bs,bs,"删除",sv),
-					 new Button(bs,bs*13,bs,bs,"封闭",sv),
-					 new Button(bs*2,bs*13,bs,bs,"自由选点",sv),
-					 new Button(bs*2,bs*14,bs,bs,"",sv),
-					 new Button(bs,bs*14,bs,bs,"确定",sv),
-					 new FloatPicker(bs*3,bs*11,bs*4,fpe)
+					 new Button(bs*3,bs*12,bs,bs,"封闭",sv),
+					 new Button(bs,bs*14,bs,bs,"自由选点",sv),
+					 new Button(bs*3,bs*11,bs,bs,"0",sv),
+					 new Button(bs*2,bs*14,bs,bs,"确定",sv),
+					 new FloatPicker(bs*4,bs*11,bs*4,fpe),
+					 new Button(bs,bs*13,bs,bs,"普通点",sv),
+					 new Button(bs*2,bs*13,bs,bs,"拐点",sv),
+					 new Button(bs*3,bs*13,bs,bs,"起点",sv)
 					 ),
 			new Menu(bs,bs*14,bs*2,bs*1,
 					 new Button(bs,bs*14,bs,bs,"点",sv),
@@ -1016,10 +1026,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	{
 		m.show=!m.show;
 		/*if(m.show)
-		{
-			mview.remove(m);
-			mview.add(m);
-		}*/
+		 {
+		 mview.remove(m);
+		 mview.add(m);
+		 }*/
 	}
 	public void saveUndo()
 	{
