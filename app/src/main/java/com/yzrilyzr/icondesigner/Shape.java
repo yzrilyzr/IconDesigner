@@ -335,9 +335,7 @@ public class Shape
 						else tp.setColor(0xff000000);
 						c.drawText(i+"",pf.x,pf.y,tp);
 					}
-					if(t instanceof PathPoint)
-					{
-						byte by=((PathPoint)t).type;
+					byte by=((PathPoint)t).type;
 						if(by==1)
 						{
 							poi.add(pf);
@@ -355,8 +353,6 @@ public class Shape
 							pa.moveTo(pf.x,pf.y);
 						}
 						else poi.add(pf);
-					}
-					else poi.add(pf);
 				}
 				Catmull_Rom(poi,a.y,pa);
 				poi.clear();poi=null;
