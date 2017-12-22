@@ -19,7 +19,6 @@ public class Shape
 		0,
 		0xff000000
 	};
-	public ConcurrentHashMap<String,String> ppt=new ConcurrentHashMap<String,String>();
 	//0:color,1:strokecolor,2:miter,3:strokewidth,4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
 	public long flag=0;
 	public Shader shader=null;
@@ -336,22 +335,26 @@ public class Shape
 						else tp.setColor(0xff000000);
 						c.drawText(i+"",pf.x,pf.y,tp);
 					}
-					String by=ppt.get(i+"");
-					if("1".equals(by))
+					if(t instanceof PathPoint)
 					{
-						poi.add(pf);
-						Catmull_Rom(poi,a.y,pa);
-						if(a.x==1)pa.close();
-						poi.clear();
-						poi.add(pf);
-					}
-					else if("2".equals(by)||i==1)
-					{
-						Catmull_Rom(poi,a.y,pa);
-						if(a.x==1)pa.close();
-						poi.clear();
-						poi.add(pf);
-						pa.moveTo(pf.x,pf.y);
+						byte by=((PathPoint)t).type;
+						if(by==1)
+						{
+							poi.add(pf);
+							Catmull_Rom(poi,a.y,pa);
+							if(a.x==1)pa.close();
+							poi.clear();
+							poi.add(pf);
+						}
+						else if(by==2||i==1)
+						{
+							Catmull_Rom(poi,a.y,pa);
+							if(a.x==1)pa.close();
+							poi.clear();
+							poi.add(pf);
+							pa.moveTo(pf.x,pf.y);
+						}
+						else poi.add(pf);
 					}
 					else poi.add(pf);
 				}
@@ -470,6 +473,23 @@ public class Shape
 				}
 			}
 			path.lineTo(point.get(point.size() - 1).x, point.get(point.size() - 1).y);
+		}
+	}
+	public static class PathPoint extends Point
+	{
+		public byte type=0;//normal:0,turn:1,start:2
+		public PathPoint(int x,int y)
+		{
+			super(x,y);
+		}
+		public PathPoint(int x,int y,int type)
+		{
+			super(x,y);
+			this.type=(byte)type;
+		}
+		public PathPoint()
+		{
+			super();
 		}
 	}
 }

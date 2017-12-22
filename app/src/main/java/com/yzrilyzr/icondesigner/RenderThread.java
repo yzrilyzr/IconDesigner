@@ -24,6 +24,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.io.FileNotFoundException;
 
 public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
@@ -511,7 +512,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 											ByteArrayOutputStream o=new ByteArrayOutputStream();
 											PrintWriter pw=new PrintWriter(o);
 											e.printStackTrace(pw);pw.close();
-											toast("读取错误:"+o.toString());}
+											toast("读取错误:"+o.toString());
+										}
 										catch (IllegalStateException e)
 										{toast("不是标准的VEC文件");}
 									}
@@ -581,7 +583,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 								{
 									if(i==0)pointIndex--;
 									else if(i==1)pointIndex++;
-									else if(i==2)tmpShape.pts.add(++pointIndex,new Point(cx,cy));
+									else if(i==2)tmpShape.pts.add(++pointIndex,new Shape.PathPoint(cx,cy));
 									else if(i==3&&tmpShape.pts.size()!=1)tmpShape.pts.remove(tmpPoint);
 									else if(i==4)
 									{
@@ -590,14 +592,15 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										else po.x=0;
 									}
 									else if(i==5)MODE=3;
-									else if(i==6);
-									else if(i==9)tmpShape.ppt.remove(Integer.toString(pointIndex));
-									else if(i==10)tmpShape.ppt.put(Integer.toString(pointIndex),"1");
-									else if(i==11)tmpShape.ppt.put(Integer.toString(pointIndex),"2");
-									if(pointIndex<1)pointIndex=1;
+									else if(i==6);//setindex
+									else if(i==9)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=0;
+									else if(i==10)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=1;
+									else if(i==11)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=2;
+									if(pointIndex<0)pointIndex=0;
 									if(pointIndex>tmpShape.pts.size()-1)pointIndex=tmpShape.pts.size()-1;
 									if(pointIndex<tmpShape.pts.size()&&pointIndex>0)
 										tmpPoint=tmpShape.pts.get(pointIndex);
+									else tmpPoint=null;
 									((Button)m.views.get(6)).txt=pointIndex+"";
 								}
 								else
