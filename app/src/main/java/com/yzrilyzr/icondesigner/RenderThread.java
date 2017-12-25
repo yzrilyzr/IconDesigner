@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
@@ -24,7 +25,6 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.io.FileNotFoundException;
 
 public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
@@ -33,7 +33,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public VECfile vec=new VECfile(384,384,3.84f,null);//文件
 	public VECfile.Builder builder=new VECfile.Builder();
 	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
-	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退
+	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退,位移
 	public int alpha=255;
 	public MView curView;//逻辑view
 	public Bitmap icon;
@@ -49,11 +49,13 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public ColorView curColorView;//当前颜色
 	public CopyOnWriteArrayList<MView> mview=new CopyOnWriteArrayList<MView>();
 	public StringBuilder info=new StringBuilder();
-	public File localFile=new File(MainActivity.path);
+	public File localFile=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/");
 	public SurfaceView surface;
 	public Toast toast;
+	public int isTutorial=0;
 	public RenderThread(SurfaceView surface)
 	{
+		Thread.currentThread().setDefaultUncaughtExceptionHandler(this);
 		this.surface = surface;
 		this.ctx=(MainActivity)surface.getContext();
 		MView.render=this;
@@ -95,6 +97,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					}
 			}
 		}.start();
+		//if(ctx.getSharedPreferences("data",ctx.MODE_PRIVATE).getBoolean("first",true);
+		//isTutorial=1;
 	}
 	@Override
 	public void run()
@@ -111,7 +115,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				Canvas c=surface.getHolder().lockCanvas();
 				if(c!=null)
 				{
-					draw(c,paint);
+					if(isTutorial==0)draw(c,paint);
+					else drawTutorial(c,paint);
 					surface.getHolder().unlockCanvasAndPost(c);
 				}
 				else Thread.sleep(20);
@@ -137,12 +142,21 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				}
 			}
 	}
+	public void drawTutorial(Canvas c, Paint paint)
+	{
+		if(isTutorial<alpha)draw(c,paint);
+		else
+		{
+
+		}
+		isTutorial++;
+	}
 	@Override
 	public void uncaughtException(Thread p1, Throwable p2)
 	{
 		try
 		{
-			FileOutputStream os=new FileOutputStream(ctx.path+"err.txt");
+			FileOutputStream os=new FileOutputStream(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/err.txt");
 			PrintWriter ps=new PrintWriter(os);
 			p2.printStackTrace(ps);
 			ps.flush();
@@ -174,11 +188,24 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				else if(j>surface.getHeight())break;
 				else canvas.drawLine(deltax*scale,j,(vec.width+deltax)*scale,j,paint);
 		}
+		paint.setStyle(Paint.Style.STROKE);
+		paint.setStrokeWidth(2);
+		paint.setColor(0xffff00ff);
+		float pcx=(cx*vec.dp+deltax)*scale,pcy=(cy*vec.dp+deltay)*scale;
+		float hcx=(vec.width-cx*vec.dp+deltax)*scale,hcy=(vec.height-cy*vec.dp+deltay)*scale;
+		canvas.drawLines(new float[]{
+							 0,pcy,surface.getWidth(),pcy,
+							 pcx,0,pcx,surface.getHeight(),
+							 0,hcy,surface.getWidth(),hcy,
+							 hcx,0,hcx,surface.getHeight()
+						 },paint);
 		paint.setStyle(Paint.Style.FILL);
-		paint.setColor(0xff000000);
-		canvas.drawCircle((cx*vec.dp+deltax)*scale,(cy*vec.dp+deltay)*scale,10,paint);
 		paint.setTextAlign(Paint.Align.LEFT);
-		canvas.drawText(String.format("%d,%d;shapes:%d;fps:%d,RAM:%d",cx,cy,vec.shapes.size(),fps,ram),0,paint.getTextSize()*3.2f,paint);
+		canvas.drawText(String.format("x%d,y%d;cx%d,cy%d;shapes:%d;RAM:%d%s;FPS:%d",cx,cy,(int)(cx-vec.width/2/vec.dp),(int)(cy-vec.height/2/vec.dp),vec.shapes.size(),ram,"%",fps),0,paint.getTextSize()*3.2f,paint);
+		if(undo.size()==0)((Button)mview.get(7)).color=MView.unavailablecolor;
+		else ((Button)mview.get(7)).color=MView.buttoncolor;
+		if(redo.size()==0)((Button)mview.get(8)).color=MView.unavailablecolor;
+		else ((Button)mview.get(8)).color=MView.buttoncolor;
 		for(MView b:mview)b.onDraw(canvas);
 		paint.setTextAlign(Paint.Align.CENTER);
 		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
@@ -220,8 +247,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					else if(MODE==4)MODE=0;
 					else if(MODE==5)MODE=6;
 					else if(MODE==6)MODE=0;
+					else if(MODE==7)MODE=8;
+					else if(MODE==8)MODE=0;
+					else if(MODE==9)MODE=10;
+					else if(MODE==10)MODE=0;
 					if(tmpPoint!=null)tmpPoint2=new Point(tmpPoint);
-					else tmpPoint2=null;
+					else tmpPoint2=new Point(cx,cy);
 					for(int i=mview.size()-1;i!=-1;i--)
 					{
 						MView b=mview.get(i);
@@ -238,6 +269,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				{
 					cx=Math.round((x-deltax*scale)/(vec.dp*scale));
 					cy=Math.round((y-deltay*scale)/(vec.dp*scale));
+					if(a==MotionEvent.ACTION_DOWN)saveUndo();
 					if(MODE==2)
 					{
 						curColorView.color=vec.front.getPixel(Math.round(x/scale-deltax),Math.round(y/scale-deltay));
@@ -251,7 +283,6 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 						if(size==1||!poi.equals(poi2))tmpShape.pts.add(poi);
 					}
 					else if(MODE==6)
-					{
 						if(a==MotionEvent.ACTION_DOWN)tmpPoint3=new Point(cx,cy);
 						else
 						{
@@ -259,8 +290,39 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 							colorShape.par[5]=cy-tmpPoint3.y;
 							setTmpShape();
 						}
+					else if(MODE==8)
+					{
+						if(a==MotionEvent.ACTION_DOWN)tmpPoint3=new Point(cx,cy);
+						else if(tmpShape!=null)
+						{
+							boolean path=false;
+							for(Point p:tmpShape.pts)
+							{
+								if(!path&&tmpShape.hasFlag(Shape.TYPE.PATH))
+								{
+									path=true;
+									continue;
+								}
+								p.x+=cx-tmpPoint3.x;
+								p.y+=cy-tmpPoint3.y;
+							}
+							tmpPoint3.x=cx;
+							tmpPoint3.y=cy;
+						}
 					}
-					else if(tmpPoint!=null)
+					else if(MODE==10)
+						if(a==MotionEvent.ACTION_DOWN)tmpPoint3=new Point(cx,cy);
+						else if(tmpShape!=null)
+						{
+							for(int ik=tmpShape.hasFlag(Shape.TYPE.PATH)?1:0;ik<tmpShape.pts.size();ik++)
+							{
+								Point pp=tmpShape.pts.get(ik);
+								if(cx!=tmpPoint3.x)pp.x=(int)(vec.width/vec.dp)-pp.x;
+								if(cy!=tmpPoint3.y)pp.y=(int)(vec.width/vec.dp)-pp.y;
+							}
+							if(!tmpPoint3.equals(cx,cy))MODE=0;
+						}
+					if(tmpPoint!=null)
 					{
 						tmpPoint.x=cx;
 						tmpPoint.y=cy;
@@ -277,10 +339,15 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					ddy=(y+y1)/2;
 					lpointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
 					lscale=scale;
-					if(tmpPoint!=null&&tmpPoint2!=null)
+					if(tmpPoint2!=null)
 					{
-						tmpPoint.x=tmpPoint2.x;
-						tmpPoint.y=tmpPoint2.y;
+						if(tmpPoint!=null)
+						{
+							tmpPoint.x=tmpPoint2.x;
+							tmpPoint.y=tmpPoint2.y;
+						}
+						cx=tmpPoint2.x;
+						cy=tmpPoint2.y;
 					}
 					moved=true;
 				}
@@ -422,34 +489,26 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			}
 			public void undo()
 			{
-				if(undo.size()==0)bu[7].color=MView.unavailablecolor;
-				else
+				if(undo.size()!=0)
 				{
-					bu[7].color=MView.buttoncolor;
 					CopyOnWriteArrayList<Shape> list=undo.get(undo.size()-1);
 					undo.remove(undo.size()-1);
 					CopyOnWriteArrayList<Shape> list2=new CopyOnWriteArrayList<Shape>();
 					for(Shape s:vec.shapes)list2.add(new Shape(s));
 					redo.add(list2);
-					bu[8].color=MView.buttoncolor;
-					if(undo.size()==0)bu[7].color=MView.unavailablecolor;
 					vec.shapes.clear();
 					for(Shape s:list)vec.shapes.add(new Shape(s));
 				}
 			}
 			public void redo()
 			{
-				if(redo.size()==0)bu[8].color=MView.unavailablecolor;
-				else
+				if(redo.size()!=0)
 				{
-					bu[8].color=MView.buttoncolor;
 					CopyOnWriteArrayList<Shape> list=redo.get(redo.size()-1);
 					redo.remove(redo.size()-1);
 					CopyOnWriteArrayList<Shape> list2=new CopyOnWriteArrayList<Shape>();
 					for(Shape s:vec.shapes)list2.add(new Shape(s));
 					undo.add(list2);
-					bu[7].color=MView.buttoncolor;
-					if(redo.size()==0)bu[8].color=MView.unavailablecolor;
 					vec.shapes.clear();
 					for(Shape s:list)vec.shapes.add(new Shape(s));
 				}
@@ -536,6 +595,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			@Override
 			public void e(Button b)
 			{
+				saveUndo();
 				for(int j=0;j<9;j++)
 					if(b.parent==me[j])
 					{
@@ -592,7 +652,33 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										else po.x=0;
 									}
 									else if(i==5)MODE=3;
-									else if(i==6);//setindex
+									else if(i==6)
+									{
+										final EditText edit=new EditText(ctx);
+										edit.setText(pointIndex+"");
+										new AlertDialog.Builder(ctx)
+											.setTitle("选择点(0:不选择,共"+(tmpShape.pts.size()-1)+"个点)")
+											.setView(edit)
+											.setPositiveButton("确定",new DialogInterface.OnClickListener(){
+												@Override
+												public void onClick(DialogInterface p1, int p2)
+												{
+													try
+													{
+														pointIndex=Integer.parseInt(edit.getText()+"");
+														if(pointIndex<0)pointIndex=0;
+														if(pointIndex>tmpShape.pts.size()-1)pointIndex=tmpShape.pts.size()-1;
+														if(pointIndex<tmpShape.pts.size()&&pointIndex>0)
+															tmpPoint=tmpShape.pts.get(pointIndex);
+														else tmpPoint=null;
+													}
+													catch(Throwable e)
+													{toast("数值非法");}
+												}
+											})
+											.setNegativeButton("取消",null)
+											.show();
+									}
 									else if(i==9)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=0;
 									else if(i==10)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=1;
 									else if(i==11)((Shape.PathPoint)tmpShape.pts.get(pointIndex)).type=2;
@@ -674,13 +760,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										}
 									}
 									else if(i==2)MODE=7;
-									else if(i==3&&tmpShape!=null)
-										for(int ik=tmpShape.hasFlag(Shape.TYPE.PATH)?1:0;ik<tmpShape.pts.size();ik++)
-										{
-											Point pp=tmpShape.pts.get(ik);
-											pp.x=(int)(vec.width/vec.dp)-pp.x;
-											//pp.y=(int)(vec.width/vec.dp)-pp.y;
-										}
+									else if(i==3&&tmpShape!=null)MODE=9;
 									else if(i==4)
 									{
 										int index=vec.shapes.indexOf(tmpShape);
@@ -1028,18 +1108,25 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public void showMenu(Menu m)
 	{
 		m.show=!m.show;
-		/*if(m.show)
-		 {
-		 mview.remove(m);
-		 mview.add(m);
-		 }*/
+		if(m.show)
+		{
+			mview.remove(m);
+			mview.add(m);
+		}
 	}
 	public void saveUndo()
 	{
 		redo.clear();
-		CopyOnWriteArrayList<Shape> list=new CopyOnWriteArrayList<Shape>();
-		for(Shape s:vec.shapes)list.add(new Shape(s));
-		undo.add(list);
+		CopyOnWriteArrayList<Shape> list=new CopyOnWriteArrayList<Shape>(),last=null;
+		if(undo.size()>0)last=undo.get(undo.size()-1);
+		boolean mod=last==null||vec.shapes.size()!=last.size();
+		for(int i=0;!mod&&i<last.size();i++)
+			if(!vec.shapes.get(i).equals(last.get(i)))mod=true;
+		if(mod)
+		{
+			for(Shape s:vec.shapes)list.add(new Shape(s));
+			undo.add(list);
+		}
 	}
 	public void setTmpShape()
 	{

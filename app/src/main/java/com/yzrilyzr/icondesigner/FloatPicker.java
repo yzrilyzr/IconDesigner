@@ -67,11 +67,11 @@ public class FloatPicker extends MView
 		{
 			float tx=(float)(1.5*r*Math.cos((i*4-13.0)*Math.PI/18.0));
 			float ty=(float)(1.5*r*Math.sin((i*4-13.0)*Math.PI/18.0));
-			canvas.drawText(i+"",cx+tx,cy+ty+met.bottom*1.2f,paint);
+			canvas.drawText(Integer.toString(i),cx+tx,cy+ty+met.bottom*1.2f,paint);
 		}
 		float v=getValue();
 		if(v==0)canvas.drawText("/",cx,cy+met.bottom*1.2f,paint);
-		else canvas.drawText(v+"",cx,cy+met.bottom*1.2f,paint);
+		else canvas.drawText(Float.toString(v),cx,cy+met.bottom*1.2f,paint);
 	}
 	@Override
 	public void onTouchEvent(MotionEvent event)
@@ -87,7 +87,7 @@ public class FloatPicker extends MView
 			mode=1;
 			final EditText edit=new EditText(render.ctx);
 			edit.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-			edit.setText(getValue()+"");
+			edit.setText(Float.toString(getValue()));
 			new AlertDialog.Builder(render.ctx)
 				.setTitle("设置数值(0~+∞)")
 				.setView(edit)

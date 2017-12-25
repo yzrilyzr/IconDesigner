@@ -15,9 +15,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import android.view.KeyEvent;
+import android.content.SharedPreferences;
 public class MainActivity extends Activity 
 {
-	static String path=Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/";
+	long time=0;
 	@Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -43,6 +44,12 @@ public class MainActivity extends Activity
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		return true;
+		if(keyCode==KeyEvent.KEYCODE_BACK&&time+700<System.currentTimeMillis())
+		{
+			MainView.render.toast("再按一次退出");
+			time=System.currentTimeMillis();
+			return true;
+		}
+		return super.onKeyDown(keyCode,event);
 	}
 }

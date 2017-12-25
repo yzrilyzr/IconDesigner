@@ -329,30 +329,24 @@ public class Shape
 				{
 					Point t=pts.get(i);
 					PointF pf=new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
-					if(MainView.render.tmpShape==this)
-					{
-						if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
-						else tp.setColor(0xff000000);
-						c.drawText(i+"",pf.x,pf.y,tp);
-					}
 					byte by=((PathPoint)t).type;
-						if(by==1)
-						{
-							poi.add(pf);
-							Catmull_Rom(poi,a.y,pa);
-							if(a.x==1)pa.close();
-							poi.clear();
-							poi.add(pf);
-						}
-						else if(by==2||i==1)
-						{
-							Catmull_Rom(poi,a.y,pa);
-							if(a.x==1)pa.close();
-							poi.clear();
-							poi.add(pf);
-							pa.moveTo(pf.x,pf.y);
-						}
-						else poi.add(pf);
+					if(by==1)
+					{
+						poi.add(pf);
+						Catmull_Rom(poi,a.y,pa);
+						if(a.x==1)pa.close();
+						poi.clear();
+						poi.add(pf);
+					}
+					else if(by==2||i==1)
+					{
+						Catmull_Rom(poi,a.y,pa);
+						if(a.x==1)pa.close();
+						poi.clear();
+						poi.add(pf);
+						pa.moveTo(pf.x,pf.y);
+					}
+					else poi.add(pf);
 				}
 				Catmull_Rom(poi,a.y,pa);
 				poi.clear();poi=null;
@@ -366,6 +360,16 @@ public class Shape
 				fs(sp);
 			}
 			c.drawPath(pa,sp);
+			for(int i=1;i<pts.size();i++)
+				if(MainView.render.tmpShape==this)
+				{
+					Point t=pts.get(i);
+					PointF pf=new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
+					if(MainView.render.tmpPoint==t)tp.setColor(0xffff0000);
+					else tp.setColor(0xff000000);
+					c.drawText(Integer.toString(i),pf.x,pf.y,tp);
+					c.drawPoint(pf.x,pf.y,tp);
+				}
 		}
 		else if(hasFlag(TYPE.TEXT))
 		{
@@ -430,8 +434,14 @@ public class Shape
 	{
 		this(s.flag);
 		pts.clear();
-		for(Point p:s.pts)
-			pts.add(new Point(p));
+		if(s.hasFlag(Shape.TYPE.PATH))
+		{
+			pts.add(new Point(s.pts.get(0)));
+			for(int i=1;i<s.pts.size();i++)
+				pts.add(new PathPoint((PathPoint)s.pts.get(i)));
+		}
+		else for(Point p:s.pts)
+				pts.add(new Point(p));
 		int k=0;
 		for(int ii:s.par)
 			par[k++]=ii;
@@ -444,6 +454,21 @@ public class Shape
 		int i=0;
 		for(int p:src.par)par[i++]=p;
 		setFlag(src,STYLE.ALL);
+	}
+	@Override
+	public boolean equals(Object o)
+	{
+		if(o!=null&&o instanceof Shape)
+		{
+			Shape s=(Shape)o;
+			boolean e=s.flag==flag&&txt.equals(s.txt)&&pts.size()==s.pts.size();
+			for(int i=0;e&&i<par.length;i++)
+				if(par[i]!=s.par[i])e=false;
+			for(int i=0;e&&i<pts.size();i++)
+				if(!pts.get(i).equals(s.pts.get(i)))e=false;
+			return e;
+		}
+		else return false;
 	}
 	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
 	{
@@ -477,6 +502,10 @@ public class Shape
 		public PathPoint(int x,int y)
 		{
 			super(x,y);
+		}
+		public PathPoint(PathPoint p)
+		{
+			this(p.x,p.y,p.type);
 		}
 		public PathPoint(int x,int y,int type)
 		{
