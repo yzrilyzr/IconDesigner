@@ -36,7 +36,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退,位移
 	public int alpha=255;
 	public MView curView;//逻辑view
-	public Bitmap icon;
+	public Bitmap icon,folder,file,vecfile,upparent;
 	public int ram=0,fps=0;
 	public float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
 	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> undo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
@@ -61,6 +61,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		MView.render=this;
 		dpi=ctx.getResources().getDisplayMetrics().density;
 		icon=BitmapFactory.decodeResource(surface.getResources(),R.drawable.icon);
+		folder=BitmapFactory.decodeResource(surface.getResources(),R.drawable.folder);
+		file=BitmapFactory.decodeResource(surface.getResources(),R.drawable.file);
+		vecfile=BitmapFactory.decodeResource(surface.getResources(),R.drawable.vecfile);
+		upparent=BitmapFactory.decodeResource(surface.getResources(),R.drawable.upparent);
 		Matrix m=new Matrix();
 		m.postScale((float)MView.px(80)/(float)icon.getWidth(),(float)MView.px(80)/(float)icon.getHeight());
 		icon=Bitmap.createBitmap(icon,0,0,icon.getWidth(),icon.getHeight(),m,false);
@@ -189,8 +193,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				else canvas.drawLine(deltax*scale,j,(vec.width+deltax)*scale,j,paint);
 		}
 		paint.setStyle(Paint.Style.STROKE);
-		paint.setStrokeWidth(2);
-		paint.setColor(0xffff00ff);
+		paint.setStrokeWidth(1);
+		paint.setColor(0xffff0000);
 		float pcx=(cx*vec.dp+deltax)*scale,pcy=(cy*vec.dp+deltay)*scale;
 		float hcx=(vec.width-cx*vec.dp+deltax)*scale,hcy=(vec.height-cy*vec.dp+deltay)*scale;
 		canvas.drawLines(new float[]{
@@ -202,13 +206,13 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		paint.setStyle(Paint.Style.FILL);
 		paint.setTextAlign(Paint.Align.LEFT);
 		canvas.drawText(String.format("x%d,y%d;cx%d,cy%d;shapes:%d;RAM:%d%s;FPS:%d",cx,cy,(int)(cx-vec.width/2/vec.dp),(int)(cy-vec.height/2/vec.dp),vec.shapes.size(),ram,"%",fps),0,paint.getTextSize()*3.2f,paint);
+		paint.setTextAlign(Paint.Align.CENTER);
+		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
 		if(undo.size()==0)((Button)mview.get(7)).color=MView.unavailablecolor;
 		else ((Button)mview.get(7)).color=MView.buttoncolor;
 		if(redo.size()==0)((Button)mview.get(8)).color=MView.unavailablecolor;
 		else ((Button)mview.get(8)).color=MView.buttoncolor;
 		for(MView b:mview)b.onDraw(canvas);
-		paint.setTextAlign(Paint.Align.CENTER);
-		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
 		if(alpha>0)
 		{
 			useNet=false;
@@ -252,7 +256,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					else if(MODE==9)MODE=10;
 					else if(MODE==10)MODE=0;
 					if(tmpPoint!=null)tmpPoint2=new Point(tmpPoint);
-					else tmpPoint2=new Point(cx,cy);
+					else tmpPoint2=null;
 					for(int i=mview.size()-1;i!=-1;i--)
 					{
 						MView b=mview.get(i);
@@ -339,15 +343,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					ddy=(y+y1)/2;
 					lpointLen=(float)Math.sqrt(Math.pow(x-x1,2)+Math.pow(y-y1,2));
 					lscale=scale;
-					if(tmpPoint2!=null)
+					if(tmpPoint2!=null&&tmpPoint!=null)
 					{
-						if(tmpPoint!=null)
-						{
-							tmpPoint.x=tmpPoint2.x;
-							tmpPoint.y=tmpPoint2.y;
-						}
-						cx=tmpPoint2.x;
-						cy=tmpPoint2.y;
+						tmpPoint.x=tmpPoint2.x;
+						tmpPoint.y=tmpPoint2.y;
 					}
 					moved=true;
 				}
@@ -528,65 +527,62 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 						}
 					});
 				int k=0;
-				dst[k++]=new File("…");
+				dst[k++]=new File("...");
 				for(File f:src)if(f.isDirectory())dst[k++]=f;
 				for(File f:src)if(f.isFile())dst[k++]=f;
 				k=0;
 				for(File ffs:dst)
 				{
 					final int p3=k++;
-					Button tb=new Button(bs*2,0,bs*6,bs,ffs.getName(),new Button.Event(){
-							@Override
-							public void e(Button b)
-							{
-								File f=dst[p3];
-								if(f.isDirectory())
-								{
-									localFile=f;
-									listfile(m);
-								}
-								else if(f.isFile())
-								{
-									if(m.parent==me[20]||m.parent==me[23])
-									{
-										String ss=f.getName();
-										((Edit)((Menu)m.parent).views.get(0)).txt=ss.substring(0,ss.lastIndexOf("."));
-									}
-									else if(m==me[22])
-									{
-										try
-										{
-											VECfile v=VECfile.readFile(f.getAbsolutePath());
-											if(v!=null)
-											{
-												vec=v;
-												initPosition();
-												builder.bgpath=vec.bgpath;
-												builder.backgcolor=vec.backgcolor;
-												m.show=false;
-											}
-										}
-										catch (IOException e)
-										{
-											ByteArrayOutputStream o=new ByteArrayOutputStream();
-											PrintWriter pw=new PrintWriter(o);
-											e.printStackTrace(pw);pw.close();
-											toast("读取错误:"+o.toString());
-										}
-										catch (IllegalStateException e)
-										{toast("不是标准的VEC文件");}
-									}
-								}
-								else
-								{
-									localFile=localFile.getParentFile();
-									listfile(m);
-								}
-							}
-						});
-					if(ffs.isFile())tb.color=0xff10e0ff;
-					else tb.color=0xffffe020;
-					m.addView(tb);
+					m.addView(new FileButton(bs,0,bs*7,bs,ffs.getName(),ffs.isFile(),new Button.Event(){
+									  @Override
+									  public void e(Button b)
+									  {
+										  File f=dst[p3];
+										  if(f.isDirectory())
+										  {
+											  localFile=f;
+											  listfile(m);
+										  }
+										  else if(f.isFile())
+										  {
+											  if(m.parent==me[20]||m.parent==me[23])
+											  {
+												  String ss=f.getName();
+												  ((Edit)((Menu)m.parent).views.get(0)).txt=ss.substring(0,ss.lastIndexOf("."));
+											  }
+											  else if(m==me[22])
+											  {
+												  try
+												  {
+													  VECfile v=VECfile.readFile(f.getAbsolutePath());
+													  if(v!=null)
+													  {
+														  vec=v;
+														  initPosition();
+														  builder.bgpath=vec.bgpath;
+														  builder.backgcolor=vec.backgcolor;
+														  m.show=false;
+													  }
+												  }
+												  catch (IOException e)
+												  {
+													  ByteArrayOutputStream o=new ByteArrayOutputStream();
+													  PrintWriter pw=new PrintWriter(o);
+													  e.printStackTrace(pw);pw.close();
+													  toast("读取错误:"+o.toString());
+												  }
+												  catch (IllegalStateException e)
+												  {toast("不是标准的VEC文件");}
+											  }
+										  }
+										  else
+										  {
+											  localFile=localFile.getParentFile();
+											  listfile(m);
+										  }
+									  }
+								  }));
 				}
 				m.measure();
 			}
