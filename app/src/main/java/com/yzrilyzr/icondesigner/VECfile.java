@@ -28,6 +28,96 @@ public class VECfile
 		bgpath=b;
 		init(width, height,dp);
 	}
+
+	public void loadoutTxtFile(String f)
+	{
+		try
+		{
+			PrintWriter os=new PrintWriter(new FileOutputStream(f));
+			os.println("VEC 版本:1");
+			os.println("文件名:"+name+";描述:"+comm);
+			os.println("宽:"+width+";高:"+height+";精度:"+(int)(width/dp));
+			os.println("抗锯齿:"+antialias+";防抖动:"+dither);
+			os.println("背景色:"+Integer.toHexString(backgcolor));
+			os.println("图形个数:"+shapes.size());
+			os.println("");
+			for(Shape s:shapes)
+			{
+				/*	public Shader shader=null;
+				 public PathEffect pathEffect=null;*/
+				os.println("标识:"+getFlagName(s));
+				if(s.hasFlag(Shape.TYPE.TEXT))os.println("图形文字:"+s.txt);
+				os.println("点个数:"+s.pts.size());
+				boolean bool=false;
+				if(s.hasFlag(Shape.TYPE.PATH))
+					for(Point po:s.pts)
+					{
+						if(bool){
+							int type=((Shape.PathPoint)po).type;
+							String[] k=new String[]{"普通点","拐点","起点"};
+							os.println(po.x+"  "+po.y+"  type:"+k[type]);
+						}
+						else os.println(po.x+"  "+po.y);
+						bool=true;
+					}
+				else 
+					for(Point po:s.pts)
+					{
+						os.println(po.x+"  "+po.y);
+					}
+				String[] k=new String[]{"颜色","描线颜色","锐角","描线粗细","阴影偏移x","阴影偏移y","阴影半径","阴影颜色"};
+				for(int i=0;i<s.par.length;i++){
+					if(i==0||i==1||i==7)os.println(k[i]+":"+Integer.toHexString(s.par[i]));
+					else os.println(k[i]+":"+s.par[i]);
+				}
+				os.println("");
+			}
+			os.println("背景图片目录:"+bgpath);
+			os.flush();
+			os.close();
+		}
+		catch (Exception e)
+		{}
+	}
+
+	private String getFlagName(Shape s)
+	{
+		StringBuilder b=new StringBuilder();
+		String[] t=Long.toBinaryString(s.flag).split("");
+		String[] n=new String[]{
+			"左对齐","居中","右对齐","默认","粗体",
+			"MONOSPACE","SANS_SERIF","SERIF",
+			"无线帽","圆帽","方帽","圆拐角","锐角",
+			"直线","填充","描线","填充描线","描线填充",
+		"CLEAR",
+		"DARKEN",
+		"DST",
+		"DST_ATOP",
+		"DST_IN",
+		"DST_OUT",
+		"DST_OVER",
+		"LIGHTEN",
+		"MULTIPLY",
+		"OVERLAY",
+		"SCREEN",
+		"SRC",
+		"SRC_ATOP",
+		"SRC_IN",
+		"SRC_OUT",
+		"SRC_OVER",
+		"XOR",
+		"ADD",
+	"新图层","回图层","中心","封闭","扫描",
+	"辐射","线性","虚线","离散","圆角","组合",
+	"矩形","圆形","椭圆","弧","圆角矩形","路径",
+	"点","直线","文本"};
+		for(int i=t.length-1;i>=0;i--)
+		if("1".equals(t[i])){
+			b.append(n[t.length-i-1]);
+			b.append(" ");
+		}
+		return b.toString();
+	}
 	public void addShape(Shape s)
 	{
 		if(s!=null)shapes.add(s);

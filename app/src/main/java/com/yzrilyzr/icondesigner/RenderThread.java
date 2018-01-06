@@ -820,6 +820,15 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									else if(i==1)MODE=1;
 								}
 								else if(j==10)colorShape.setFlag(Shape.STYLE.FILL*(long)Math.pow(2,i),Shape.STYLE.ALL);
+								else if(j==11)
+								{
+									if(i<18)tmpShape.setFlag(Shape.XFERMODE.CLEAR*(long)Math.pow(2,i),Shape.XFERMODE.ALL);
+									else
+									{
+										tmpShape.flag|=Shape.XFERMODE.ALL;
+										tmpShape.flag-=Shape.XFERMODE.ALL;
+									}
+								}
 								else if(j==12&&i==0)MODE=5;
 								else if(j==20&&i==1)
 								{
@@ -833,18 +842,31 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									vec.saveFile(f);
 									me[20].show=false;
 								}
-								else if(j==23&&i==1)
-								{
-									String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".png";
-									/*if(new File(f).exists())
-									 {
-									 me[20].showMenu;
-									 ((Button)me[20].views.get(1)).txt="发现同名文件，是否替换？";
-									 }
-									 else*/
-									vec.loadoutFile(f);
-									me[23].show=false;
-								}
+								else if(j==23)
+									if(i==1)
+									{
+										String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".png";
+										/*if(new File(f).exists())
+										 {
+										 me[20].showMenu;
+										 ((Button)me[20].views.get(1)).txt="发现同名文件，是否替换？";
+										 }
+										 else*/
+										vec.loadoutFile(f);
+										me[23].show=false;
+									}
+									else if(i==3)
+									{
+										String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".txt";
+										/*if(new File(f).exists())
+										 {
+										 me[20].showMenu;
+										 ((Button)me[20].views.get(1)).txt="发现同名文件，是否替换？";
+										 }
+										 else*/
+										vec.loadoutTxtFile(f);
+										me[23].show=false;
+									}
 								setTmpShape();
 							}
 						}
@@ -982,7 +1004,27 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*2,bs*14,bs,bs,"描线",sv),
 					 new Button(bs*3,bs*14,bs,bs,"描线填充",sv),
 					 new Button(bs*4,bs*14,bs,bs,"填充描线",sv)),
-			new Menu(bs,bs*11,bs*7,bs*4),
+			new Menu(bs,bs*12,bs*7,bs*3,
+					 new Button(bs,bs*12,bs,bs,"add",sv),
+					 new Button(bs*2,bs*12,bs,bs,"clear",sv),
+					 new Button(bs*3,bs*12,bs,bs,"darken",sv),
+					 new Button(bs*4,bs*12,bs,bs,"dst",sv),
+					 new Button(bs*5,bs*12,bs,bs,"dst_atop",sv),
+					 new Button(bs*6,bs*12,bs,bs,"dst_in",sv),
+					 new Button(bs,bs*13,bs,bs,"dst_out",sv),
+					 new Button(bs*2,bs*13,bs,bs,"dst_over",sv),
+					 new Button(bs*3,bs*13,bs,bs,"lighten",sv),
+					 new Button(bs*4,bs*13,bs,bs,"multiply",sv),
+					 new Button(bs*5,bs*13,bs,bs,"overlay",sv),
+					 new Button(bs*6,bs*13,bs,bs,"screen",sv),
+					 new Button(bs,bs*14,bs,bs,"src",sv),
+					 new Button(bs*2,bs*14,bs,bs,"src_atop",sv),
+					 new Button(bs*3,bs*14,bs,bs,"src_in",sv),
+					 new Button(bs*4,bs*14,bs,bs,"src_out",sv),
+					 new Button(bs*5,bs*14,bs,bs,"src_over",sv),
+					 new Button(bs*6,bs*14,bs,bs,"xor",sv),
+					 new Button(bs*7,bs*12,bs,bs,"无",sv)
+					 ),
 			new Menu(bs,bs*11,bs*5,bs*4,
 					 new Button(bs,bs*14,bs,bs,"偏移",sv),
 					 new FloatPicker(bs*2,bs*11,bs*4,fpe)),
@@ -1024,9 +1066,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*5,bs*8,bs*2,bs,"取消",null)),
 			new List(bs,bs*3,bs*7,bs*9),
 			new Menu(bs,bs*3,bs*7,bs*9,
-					 new Edit(bs,bs*3,bs*6,bs,""),
+					 new Edit(bs,bs*3,bs*5,bs,""),
 					 new Button(bs*7,bs*3,bs,bs,"导出",sv),
-					 new List(bs,bs*4,bs*7,bs*8)),
+					 new List(bs,bs*4,bs*7,bs*8),
+					 new Button(bs*6,bs*3,bs,bs,"导出清单",sv)),
 			new Menu(bs*3,bs*5,bs*3,bs*5,
 					 new Button(bs*3,bs*5,bs,bs,"宽",null),
 					 new Edit(bs*4,bs*5,bs*2,bs,""),
