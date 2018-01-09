@@ -8,7 +8,7 @@ import android.view.MotionEvent;
 public class SeekBar extends MView
 {
 	private float padd;
-	private int progress=0,max=100;
+	private int progress=0,max=100,lpro=0;
 	private Paint p;
 	public SeekBarEvent e;
 	private float kx;
@@ -19,6 +19,10 @@ public class SeekBar extends MView
 		p=new Paint(Paint.ANTI_ALIAS_FLAG);
 		progress=pro;
 		max=mx;
+	}
+	public SeekBar(float x,float y,float w,float h,int pro,int mx,SeekBarEvent eve){
+		this(x,y,w,h,pro,mx);
+		e=eve;
 	}
 	public void setProgress(int progress)
 	{
@@ -58,7 +62,8 @@ public class SeekBar extends MView
 		if(g<0)g=0;
 		if(g>max)g=max;
 		progress=g;
-		if(this.e!=null)this.e.onChange(this,progress);
+		if(this.e!=null&&lpro!=progress)this.e.onChange(this,progress);
+		lpro=progress;
 	}
 	public interface SeekBarEvent{
 		public abstract void onChange(SeekBar s,int p);

@@ -12,8 +12,8 @@ public class MView extends RectF
 {
 	public static int
 	shadowcolor=0x00555555,
-	buttoncolor=0xff80e0ff,
-	menucolor=0x50a0ffe0,
+	buttoncolor=0xffff9800,
+	menucolor=0x50ffe0b2,
 	editcolor=0xffffffff,
 	buttonselectedcolor=0xffff5050,
 	seekbarcolor=0xff00ffa0,

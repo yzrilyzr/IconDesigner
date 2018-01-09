@@ -19,7 +19,11 @@ public class Shape
 		0,
 		0xff000000
 	};
-	//0:color,1:strokecolor,2:miter,3:strokewidth,4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
+	//0:color,1:strokecolor,2:miter,3:strokewidth
+	//4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
+	public ArrayList<Point> linear=new ArrayList<Point>();
+	public ArrayList<Point> radial=new ArrayList<Point>();
+	public ArrayList<Point> sweep=new ArrayList<Point>();
 	public long flag=0;
 	public Shader shader=null;
 	public PathEffect pathEffect=null;
@@ -147,7 +151,26 @@ public class Shape
 		LINE+
 		TEXT;
 	}
-
+	public static final class TILEMODE
+	{
+		public static final long
+		L_CLAMP=		0x100000000000000l,
+		L_MIRROR=		0x200000000000000l,
+		L_REPEAT=		0x400000000000000l,
+		R_CLAMP=		0x800000000000000l,
+		R_MIRROR=		0x1000000000000000l,
+		R_REPEAT=		0x2000000000000000l,
+		L_ALL=
+		L_CLAMP+
+		L_MIRROR+
+		L_REPEAT,
+		R_ALL=
+		R_CLAMP+
+		R_MIRROR+
+		R_REPEAT
+		;//62个
+	}
+	
 	public boolean hasFlag(long f)
 	{
 		return (flag&f)==f;
@@ -163,6 +186,7 @@ public class Shape
 	}
 	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp,Paint sp)
 	{
+		createShader(xx,yy,dp,sc);
 		sp.reset();
 		sp.setAntiAlias(antia);
 		sp.setDither(dither);
@@ -453,6 +477,10 @@ public class Shape
 		int i=0;
 		for(int p:src.par)par[i++]=p;
 		setFlag(src,STYLE.ALL);
+		setFlag(src,XFERMODE.ALL);
+		setFlag(src,STROKE.ALL_CAP);
+		setFlag(src,STROKE.ALL_JOIN);
+		shader=src.shader;
 	}
 	@Override
 	public boolean equals(Object o)
@@ -468,6 +496,53 @@ public class Shape
 			return e;
 		}
 		else return false;
+	}
+	public void createShader(float xx,float yy,float dp,float sc){
+		Shader l=null,r=null,s=null;
+		if(linear.size()!=0){
+			Point p1=linear.get(0),p2=linear.get(1);
+			int[] c=new int[linear.size()-2];
+			float[] p=new float[c.length];
+			for(int i=0;i<c.length;i++){
+				Point f=linear.get(i+2);
+				c[i]=f.x;
+				p[i]=(float)f.y/100f;
+			}
+			Shader.TileMode m=Shader.TileMode.CLAMP;
+			if(hasFlag(TILEMODE.L_CLAMP))m=Shader.TileMode.CLAMP;
+			else if(hasFlag(TILEMODE.L_MIRROR))m=Shader.TileMode.MIRROR;
+			else if(hasFlag(TILEMODE.L_REPEAT))m=Shader.TileMode.REPEAT;
+			l=new LinearGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc,c,p,m);
+		}
+		if(radial.size()!=0){
+			Point p1=radial.get(0),p2=radial.get(1);
+			float rr=(float)Math.sqrt(Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2));
+			int[] c=new int[radial.size()-2];
+			float[] p=new float[c.length];
+			for(int i=0;i<c.length;i++){
+				Point f=radial.get(i+2);
+				c[i]=f.x;
+				p[i]=(float)f.y/100f;
+			}
+			Shader.TileMode m=Shader.TileMode.CLAMP;
+			if(hasFlag(TILEMODE.R_CLAMP))m=Shader.TileMode.CLAMP;
+			else if(hasFlag(TILEMODE.R_MIRROR))m=Shader.TileMode.MIRROR;
+			else if(hasFlag(TILEMODE.R_REPEAT))m=Shader.TileMode.REPEAT;
+			r=new RadialGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,rr*dp*sc,c,p,m);
+		}
+		if(sweep.size()!=0){
+			Point p1=radial.get(0);
+			int[] c=new int[radial.size()-1];
+			float[] p=new float[c.length];
+			for(int i=0;i<c.length;i++){
+				Point f=radial.get(i+1);
+				c[i]=f.x;
+				p[i]=(float)f.y/100f;
+			}
+			s=new SweepGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,c,p);
+		}
+		//Shader tmp=new ComposeShader(l,r,PorterDuff.Mode.ADD);
+		shader=l;//new ComposeShader(l,l,PorterDuff.Mode.ADD);
 	}
 	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
 	{

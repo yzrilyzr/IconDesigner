@@ -44,7 +44,7 @@ public class MainActivity extends Activity
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event)
 	{
-		if(keyCode==KeyEvent.KEYCODE_BACK&&time+700<System.currentTimeMillis())
+		if(keyCode==KeyEvent.KEYCODE_BACK&&time+1000<System.currentTimeMillis())
 		{
 			MainView.render.toast("再按一次退出");
 			time=System.currentTimeMillis();

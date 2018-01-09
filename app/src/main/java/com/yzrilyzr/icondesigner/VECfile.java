@@ -52,7 +52,8 @@ public class VECfile
 				if(s.hasFlag(Shape.TYPE.PATH))
 					for(Point po:s.pts)
 					{
-						if(bool){
+						if(bool)
+						{
 							int type=((Shape.PathPoint)po).type;
 							String[] k=new String[]{"普通点","拐点","起点"};
 							os.println(po.x+"  "+po.y+"  type:"+k[type]);
@@ -66,7 +67,8 @@ public class VECfile
 						os.println(po.x+"  "+po.y);
 					}
 				String[] k=new String[]{"颜色","描线颜色","锐角","描线粗细","阴影偏移x","阴影偏移y","阴影半径","阴影颜色"};
-				for(int i=0;i<s.par.length;i++){
+				for(int i=0;i<s.par.length;i++)
+				{
 					if(i==0||i==1||i==7)os.println(k[i]+":"+Integer.toHexString(s.par[i]));
 					else os.println(k[i]+":"+s.par[i]);
 				}
@@ -89,33 +91,34 @@ public class VECfile
 			"MONOSPACE","SANS_SERIF","SERIF",
 			"无线帽","圆帽","方帽","圆拐角","锐角",
 			"直线","填充","描线","填充描线","描线填充",
-		"CLEAR",
-		"DARKEN",
-		"DST",
-		"DST_ATOP",
-		"DST_IN",
-		"DST_OUT",
-		"DST_OVER",
-		"LIGHTEN",
-		"MULTIPLY",
-		"OVERLAY",
-		"SCREEN",
-		"SRC",
-		"SRC_ATOP",
-		"SRC_IN",
-		"SRC_OUT",
-		"SRC_OVER",
-		"XOR",
-		"ADD",
-	"新图层","回图层","中心","封闭","扫描",
-	"辐射","线性","虚线","离散","圆角","组合",
-	"矩形","圆形","椭圆","弧","圆角矩形","路径",
-	"点","直线","文本"};
+			"CLEAR",
+			"DARKEN",
+			"DST",
+			"DST_ATOP",
+			"DST_IN",
+			"DST_OUT",
+			"DST_OVER",
+			"LIGHTEN",
+			"MULTIPLY",
+			"OVERLAY",
+			"SCREEN",
+			"SRC",
+			"SRC_ATOP",
+			"SRC_IN",
+			"SRC_OUT",
+			"SRC_OVER",
+			"XOR",
+			"ADD",
+			"新图层","回图层","中心","封闭","扫描",
+			"辐射","线性","虚线","离散","圆角","组合",
+			"矩形","圆形","椭圆","弧","圆角矩形","路径",
+			"点","直线","文本"};
 		for(int i=t.length-1;i>=0;i--)
-		if("1".equals(t[i])){
-			b.append(n[t.length-i-1]);
-			b.append(" ");
-		}
+			if("1".equals(t[i]))
+			{
+				b.append(n[t.length-i-1]);
+				b.append(" ");
+			}
 		return b.toString();
 	}
 	public void addShape(Shape s)
@@ -220,7 +223,7 @@ public class VECfile
 		{
 			DataOutputStream os=new DataOutputStream(new FileOutputStream(path));
 			os.writeBytes("VEC");
-			os.writeByte(1);
+			os.writeByte(2);
 			os.writeUTF(name);
 			os.writeUTF(comm);
 			os.writeInt(width);
@@ -253,6 +256,24 @@ public class VECfile
 						os.writeInt(po.y);
 					}
 				for(int po:s.par)os.writeInt(po);
+				os.writeInt(s.linear.size());
+				os.writeInt(s.radial.size());
+				os.writeInt(s.sweep.size());
+				for(Point t:s.linear)
+				{
+					os.writeInt(t.x);
+					os.writeInt(t.y);
+				}
+				for(Point t:s.radial)
+				{
+					os.writeInt(t.x);
+					os.writeInt(t.y);
+				}
+				for(Point t:s.sweep)
+				{
+					os.writeInt(t.x);
+					os.writeInt(t.y);
+				}
 			}
 			os.writeUTF(bgpath);
 			os.flush();
@@ -269,7 +290,83 @@ public class VECfile
 		byte[] h=new byte[4];
 		os.read(h);
 		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
-		else if(h[3]==1||h[3]==4)
+		else if(h[3]==1)return readFileV1(path);
+		else if(h[3]==2)
+		{
+			v.name=os.readUTF();
+			v.comm=os.readUTF();
+			v.width=os.readInt();
+			v.height=os.readInt();
+			v.antialias=os.readBoolean();
+			v.dither=os.readBoolean();
+			v.backgcolor=os.readInt();
+			v.dp=os.readFloat();
+			v.shapes.clear();
+			int siz=os.readInt();
+			for(int i=0;i<siz;i++)
+			{
+				Shape s=new Shape(0);
+				s.flag=os.readLong();
+				if(s.hasFlag(Shape.TYPE.TEXT))s.txt=os.readUTF();
+				int ptsl=os.readInt();
+				s.pts.clear();
+				if(s.hasFlag(Shape.TYPE.PATH))
+					for(int u=0;u<ptsl;u++)
+					{
+						Shape.PathPoint po=new Shape.PathPoint();
+						po.x=os.readInt();
+						po.y=os.readInt();
+						if(u!=0)po.type=os.readByte();
+						s.pts.add(po);
+					}
+				else
+					for(int u=0;u<ptsl;u++)
+					{
+						Point po=new Point();
+						po.x=os.readInt();
+						po.y=os.readInt();
+						s.pts.add(po);
+					}
+				for(int u=0;u<8;u++)s.par[u]=os.readInt();
+				int li=os.readInt(),ra=os.readInt(),sw=os.readInt();
+				for(int u=0;u<li;u++)
+				{
+					Point po=new Point();
+					po.x=os.readInt();
+					po.y=os.readInt();
+					s.linear.add(po);
+				}
+				for(int u=0;u<ra;u++)
+				{
+					Point po=new Point();
+					po.x=os.readInt();
+					po.y=os.readInt();
+					s.linear.add(po);
+				}
+				for(int u=0;u<sw;u++)
+				{
+					Point po=new Point();
+					po.x=os.readInt();
+					po.y=os.readInt();
+					s.linear.add(po);
+				}
+				v.shapes.add(s);
+			}
+			if(os.available()>0)v.bgpath=os.readUTF();
+			os.close();
+			v.init(v.width,v.height,v.dp);
+			return v;
+		}
+		else throw new IllegalStateException("不支持的vec文件");
+	}
+	public static VECfile readFileV1(String path)throws IllegalStateException,IOException
+	{
+		VECfile v=new VECfile();
+		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		byte[] h=new byte[4];
+		os.read(h);
+		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
+		else if(h[3]==1)
 		{
 			v.name=os.readUTF();
 			v.comm=os.readUTF();

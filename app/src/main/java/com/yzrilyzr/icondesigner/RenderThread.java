@@ -32,7 +32,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public float dpi;
 	public VECfile vec=new VECfile(384,384,3.84f,null);//文件
 	public VECfile.Builder builder=new VECfile.Builder();
-	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL);//临时和颜色
+	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL|Shape.STROKE.BUTT|Shape.STROKE.MITER);//临时和颜色
 	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退,位移
 	public int alpha=255;
 	public MView curView;//逻辑view
@@ -56,6 +56,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public RenderThread(SurfaceView surface)
 	{
 		Thread.currentThread().setDefaultUncaughtExceptionHandler(this);
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+				@Override public void run()
+				{
+					vec.saveFile(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/.tmp.vec");
+				}
+			});
 		this.surface = surface;
 		this.ctx=(MainActivity)surface.getContext();
 		MView.render=this;
@@ -85,6 +91,19 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			@Override
 			public void run()
 			{
+				File f=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/.tmp.vec");
+				if(f.exists())
+				{
+					try
+					{
+						VECfile g=VECfile.readFile(f.getAbsolutePath());
+						if(g!=null)vec=g;
+					}
+					catch (IllegalStateException e)
+					{toast("打开临时文件失败");}
+					catch (IOException e)
+					{}
+				}
 				while(true)
 					try
 					{
@@ -123,7 +142,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					else drawTutorial(c,paint);
 					surface.getHolder().unlockCanvasAndPost(c);
 				}
-				else Thread.sleep(20);
+				else Thread.sleep(50);
 				ram=(int)((ru.totalMemory()-ru.freeMemory())*100/ru.maxMemory());
 				if(alpha>0)alpha-=5;
 				time=System.nanoTime()-time;
@@ -205,7 +224,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 						 },paint);
 		paint.setStyle(Paint.Style.FILL);
 		paint.setTextAlign(Paint.Align.LEFT);
-		canvas.drawText(String.format("x%d,y%d;cx%d,cy%d;shapes:%d;RAM:%d%s;FPS:%d",cx,cy,(int)(cx-vec.width/2/vec.dp),(int)(cy-vec.height/2/vec.dp),vec.shapes.size(),ram,"%",fps),0,paint.getTextSize()*3.2f,paint);
+		canvas.drawText(String.format("x%d,y%d;cx%d,cy%d;图形数:%d;RAM:%d%s;FPS:%d",cx,cy,(int)(cx-vec.width/2/vec.dp),(int)(cy-vec.height/2/vec.dp),vec.shapes.size(),ram,"%",fps),0,paint.getTextSize()*3.2f,paint);
 		paint.setTextAlign(Paint.Align.CENTER);
 		canvas.drawText(info.toString(),surface.getWidth()/2,surface.getHeight()/2,paint);
 		if(undo.size()==0)((Button)mview.get(7)).color=MView.unavailablecolor;
@@ -481,7 +500,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					for(int i=9;i<18;i++)
 						if(b==bu[9+i])
 						{
-							showMenu(me[i]);
+							showMenu(me,i);
 							break;
 						}
 				}
@@ -729,8 +748,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 								}
 								else if(j==13)
 								{
-									if(i>1&&i<5)tmpShape.setFlag(Shape.STROKE.BUTT*(long)Math.pow(2,i-2),Shape.STROKE.ALL_CAP);
-									else if(i>4)tmpShape.setFlag(Shape.STROKE.ROUND_JOIN*(long)Math.pow(2,i-5),Shape.STROKE.ALL_JOIN);
+									if(i>1&&i<5)colorShape.setFlag(Shape.STROKE.BUTT*(long)Math.pow(2,i-2),Shape.STROKE.ALL_CAP);
+									else if(i>4)colorShape.setFlag(Shape.STROKE.ROUND_JOIN*(long)Math.pow(2,i-5),Shape.STROKE.ALL_JOIN);
+								}
+								else if(j==14)
+								{
+									if(i==6||i==7)tmpPoint=tmpShape.linear.get(i-6);
 								}
 								else if(j==15)
 								{
@@ -822,11 +845,11 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 								else if(j==10)colorShape.setFlag(Shape.STYLE.FILL*(long)Math.pow(2,i),Shape.STYLE.ALL);
 								else if(j==11)
 								{
-									if(i<18)tmpShape.setFlag(Shape.XFERMODE.CLEAR*(long)Math.pow(2,i),Shape.XFERMODE.ALL);
+									if(i<18)colorShape.setFlag(Shape.XFERMODE.CLEAR*(long)Math.pow(2,i),Shape.XFERMODE.ALL);
 									else
 									{
-										tmpShape.flag|=Shape.XFERMODE.ALL;
-										tmpShape.flag-=Shape.XFERMODE.ALL;
+										colorShape.flag|=Shape.XFERMODE.ALL;
+										colorShape.flag-=Shape.XFERMODE.ALL;
 									}
 								}
 								else if(j==12&&i==0)MODE=5;
@@ -903,6 +926,53 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									if(i==0)colorShape.par[3]=(int)(f*100);
 									else if(i==1)colorShape.par[2]=(int)(f*100);
 									setTmpShape();
+								}
+							}
+						}
+					}
+			}
+		};
+		final SeekBar.SeekBarEvent se=new SeekBar.SeekBarEvent(){
+			@Override
+			public void onChange(SeekBar b, int p)
+			{
+				for(int j=0;j<me.length;j++)
+					if(b.parent==me[j])
+					{
+						Menu m=(Menu)b.parent;
+						for(int i=0;i<m.views.size();i++)
+						{
+							if(m.views.get(i)==b)
+							{
+								if(j==14)
+								{
+									if(i==3)
+										if(p==0)tmpShape.linear.clear();
+										else
+										{
+											tmpShape.linear.add(new Point(0,0));
+											tmpShape.linear.add(new Point(0,0));
+											tmpShape.linear.add(new Point(0xffff00000,50));
+											tmpShape.linear.add(new Point(0xff00ff000,100));
+										}
+									else if(i==4)
+										if(p==0)tmpShape.radial.clear();
+										else
+										{
+											tmpShape.radial.add(new Point(0,0));
+											tmpShape.radial.add(new Point(1,1));
+											tmpShape.radial.add(new Point(0xffff00000,50));
+											tmpShape.radial.add(new Point(0xff00ff000,50));
+										}
+									else if(i==5)
+										if(p==0)tmpShape.sweep.clear();
+										else
+										{
+											tmpShape.sweep.add(new Point(0,0));
+											tmpShape.sweep.add(new Point(0xffff00000,50));
+											tmpShape.sweep.add(new Point(0xff00ff000,50));
+										}
+									//colorShape.createShader(0,0,vec.dp,1);
 								}
 							}
 						}
@@ -1037,7 +1107,24 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*5,bs*14,bs,bs,"圆角",sv),
 					 new Button(bs*6,bs*14,bs,bs,"锐角",sv),
 					 new Button(bs*7,bs*14,bs,bs,"直线",sv)),
-			new Menu(bs,bs*11,bs*7,bs*4),
+			new Menu(bs,bs*12,bs*6,bs*3,
+					 new Button(bs,bs*12,bs,bs,"线性",null),
+					 new Button(bs,bs*13,bs,bs,"辐射",null),
+					 new Button(bs,bs*14,bs,bs,"扫描",null),
+					 new SeekBar(bs*2,bs*12,bs,bs,0,1,se),
+					 new SeekBar(bs*2,bs*13,bs,bs,0,1,se),
+					 new SeekBar(bs*2,bs*14,bs,bs,0,1,se),
+					 new Button(bs*3,bs*12,bs,bs,"点1",sv),
+					 new Button(bs*4,bs*12,bs,bs,"点2",sv),
+					 new Button(bs*3,bs*13,bs,bs,"中心",sv),
+					 new Button(bs*4,bs*13,bs,bs,"半径",sv),
+					 new Button(bs*3,bs*14,bs,bs,"中心",sv),
+					 new Button(bs*5,bs*12,bs,bs,"参数",sv),
+					 new Button(bs*5,bs*13,bs,bs,"参数",sv),
+					 new Button(bs*4,bs*14,bs,bs,"参数",sv),
+					 new Button(bs*6,bs*12,bs,bs,"模式",sv),
+					 new Button(bs*6,bs*13,bs,bs,"模式",sv)
+					 ),
 			new Menu(bs,bs*12,bs*2,bs*3,
 					 new Button(bs,bs*12,bs,bs,"复制",sv),
 					 new Button(bs*2,bs*12,bs,bs,"删除",sv),
@@ -1151,6 +1238,44 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		{
 			mview.remove(m);
 			mview.add(m);
+		}
+	}
+
+	public void showMenu(Menu[] mm,int j)
+	{
+		Menu m=mm[j];
+		if(tmpShape==null&&(j==14||j==15))
+		{
+			toast("未选择图形");
+			m.show=false;
+			return;
+		}
+		showMenu(m);
+		if(j==10)
+		{
+			int k=0;
+			for(MView v:m.views)
+				((Button)v).selected=colorShape.hasFlag(Shape.STYLE.FILL*(long)Math.pow(2,k++));
+		}
+		else if(j==11)
+			for(int i=0;i<19;i++)
+				if(i!=18)((Button)m.views.get(i)).selected=colorShape.hasFlag(Shape.XFERMODE.CLEAR*(long)Math.pow(2,i));
+				else
+				{
+					if(colorShape.flag==((colorShape.flag|Shape.XFERMODE.ALL)-Shape.XFERMODE.ALL))
+						((Button)m.views.get(i)).selected=true;
+				}
+		else if(j==12)
+			if(MODE==6)((Button)m.views.get(0)).selected=true;
+			else ((Button)m.views.get(0)).selected=false;
+		else if(j==13)
+			for(int i=2;i<8;i++)
+				((Button)m.views.get(i)).selected=colorShape.hasFlag(Shape.STROKE.BUTT*(long)Math.pow(2,i-2));
+		else if(j==14)
+		{
+			((SeekBar)m.views.get(3)).setProgress(tmpShape.linear.size());
+			((SeekBar)m.views.get(4)).setProgress(tmpShape.radial.size());
+			((SeekBar)m.views.get(5)).setProgress(tmpShape.sweep.size());
 		}
 	}
 	public void saveUndo()

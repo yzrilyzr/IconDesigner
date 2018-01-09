@@ -30,7 +30,10 @@ public class List extends Menu
 	@Override
 	public void onDraw(Canvas c)
 	{
-		if(!show)return;
+		if(!show){
+			vy=0;
+			return;
+		}
 		p.setColor(menucolor);
 		c.drawRect(this,p);
 		c.save();

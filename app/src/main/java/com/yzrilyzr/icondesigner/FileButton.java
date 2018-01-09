@@ -13,8 +13,6 @@ public class FileButton extends Button
 		type=isFile?1:2;
 		if(s.toLowerCase().endsWith(".vec"))type=3;
 		else if("...".equals(s))type=4;
-		if(isFile)color=0xff10e0ff;
-		else color=0xffffe020;
 	}
 	@Override
 	public void onDraw(Canvas c)
