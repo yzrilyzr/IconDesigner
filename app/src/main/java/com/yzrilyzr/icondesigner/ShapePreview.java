@@ -35,14 +35,14 @@ public class ShapePreview extends Button
 	public void onDraw(Canvas c)
 	{
 		super.onDraw(c);
-		pa.setColor(seekbarcolor);
+		pa.setColor(menucolor);
 		up.top=top;
 		up.bottom=centerY();
 		down.top=centerY();
 		down.bottom=bottom;
 		c.drawRoundRect(up,rad,rad,pa);
 		c.drawRoundRect(down,rad,rad,pa);
-		pa.setColor(0xff000000);
+		pa.setColor(textcolor);
 		c.drawText("上层",up.centerX(),up.centerY()+pa.getTextSize()/2,pa);
 		c.drawText("下层",down.centerX(),down.centerY()+pa.getTextSize()/2,pa);
 		sh.onDraw(c,render.vec.antialias,render.vec.dither,left/scale,top/scale,scale,render.vec.dp,pp);

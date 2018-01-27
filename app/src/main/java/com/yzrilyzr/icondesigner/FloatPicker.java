@@ -35,11 +35,11 @@ public class FloatPicker extends MView
 		float r=width/6;
 		float cx=width/2+left,cy=width/2+top;
 		paint.setTextSize(r);
-		paint.setColor(0xff666666);
+		paint.setColor(menucolor);
 		canvas.drawCircle(cx,cy,r,paint);
 		paint.setStyle(Paint.Style.STROKE);
 		paint.setStrokeWidth(r);
-		paint.setColor(0xff000000);
+		paint.setColor(buttoncolor);
 		canvas.drawCircle(cx,cy,r*1.5f,paint);
 		paint.setStyle(Paint.Style.FILL);
 
@@ -60,7 +60,7 @@ public class FloatPicker extends MView
 		float c2x=(float)(2.5*r*Math.cos(degree-2.0/9.0*Math.PI));
 		float c2y=(float)(2.5*r*Math.sin(degree-2.0/9.0*Math.PI));
 		canvas.drawCircle(cx+c2x,cy+c2y,r/2,paint);
-		paint.setColor(0xffffffff);
+		paint.setColor(textcolor);
 		canvas.drawText("+",cx+c1x,cy+c1y+met.bottom*1.2f,paint);
 		canvas.drawText("-",cx+c2x,cy+c2y+met.bottom*1.2f,paint);
 		for(int i=1;i<10;i++)

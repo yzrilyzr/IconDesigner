@@ -11,14 +11,15 @@ import java.util.UUID;
 public class MView extends RectF
 {
 	public static int
-	shadowcolor=0x00555555,
+	shadowcolor=0x77555555,
 	buttoncolor=0xffff9800,
-	menucolor=0x50ffe0b2,
+	menucolor=0xe0ffe0b2,
 	editcolor=0xffffffff,
 	buttonselectedcolor=0xffff5050,
-	seekbarcolor=0xff00ffa0,
+	seekbarcolor=0xffff9800,
 	unavailablecolor=0xff909090,
-	toastcolor=0xff00ff80;
+	toastcolor=0xffff9800,
+	textcolor=0xff000000;
 	public static RenderThread render;
 	public MView parent;
 	public UUID uuid=null;

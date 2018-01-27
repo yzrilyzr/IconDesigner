@@ -38,7 +38,7 @@ public class Toast extends Menu
 		bottom=pos+height;
 		paint.setColor(toastcolor);
 		c.drawRect(this,paint);
-		paint.setColor(0xff000000);
+		paint.setColor(textcolor);
 		c.drawText(txt,centerX(),centerY()+paint.getTextSize()/2,paint);
 		time++;
 		}

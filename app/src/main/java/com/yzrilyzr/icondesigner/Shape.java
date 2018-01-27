@@ -25,8 +25,6 @@ public class Shape
 	public ArrayList<Point> radial=new ArrayList<Point>();
 	public ArrayList<Point> sweep=new ArrayList<Point>();
 	public long flag=0;
-	public Shader shader=null;
-	public PathEffect pathEffect=null;
 	public String txt="";
 	public static final class TEXT
 	{
@@ -170,7 +168,7 @@ public class Shape
 		R_REPEAT
 		;//62个
 	}
-	
+
 	public boolean hasFlag(long f)
 	{
 		return (flag&f)==f;
@@ -186,7 +184,8 @@ public class Shape
 	}
 	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp,Paint sp)
 	{
-		createShader(xx,yy,dp,sc);
+		Shader shader=createShader(xx,yy,dp,sc);
+		PathEffect pathEffect=null;
 		sp.reset();
 		sp.setAntiAlias(antia);
 		sp.setDither(dither);
@@ -480,7 +479,6 @@ public class Shape
 		setFlag(src,XFERMODE.ALL);
 		setFlag(src,STROKE.ALL_CAP);
 		setFlag(src,STROKE.ALL_JOIN);
-		shader=src.shader;
 	}
 	@Override
 	public boolean equals(Object o)
@@ -497,13 +495,16 @@ public class Shape
 		}
 		else return false;
 	}
-	public void createShader(float xx,float yy,float dp,float sc){
-		Shader l=null,r=null,s=null;
-		if(linear.size()!=0){
+	private Shader createShader(float xx,float yy,float dp,float sc)
+	{
+		Shader l=null,r=null,s=null,shader=null;
+		if(linear.size()!=0)
+		{
 			Point p1=linear.get(0),p2=linear.get(1);
 			int[] c=new int[linear.size()-2];
 			float[] p=new float[c.length];
-			for(int i=0;i<c.length;i++){
+			for(int i=0;i<c.length;i++)
+			{
 				Point f=linear.get(i+2);
 				c[i]=f.x;
 				p[i]=(float)f.y/100f;
@@ -514,12 +515,14 @@ public class Shape
 			else if(hasFlag(TILEMODE.L_REPEAT))m=Shader.TileMode.REPEAT;
 			l=new LinearGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,(p2.x*dp+xx)*sc,(p2.y*dp+yy)*sc,c,p,m);
 		}
-		if(radial.size()!=0){
+		if(radial.size()!=0)
+		{
 			Point p1=radial.get(0),p2=radial.get(1);
 			float rr=(float)Math.sqrt(Math.pow(p2.x-p1.x,2)+Math.pow(p2.y-p1.y,2));
 			int[] c=new int[radial.size()-2];
 			float[] p=new float[c.length];
-			for(int i=0;i<c.length;i++){
+			for(int i=0;i<c.length;i++)
+			{
 				Point f=radial.get(i+2);
 				c[i]=f.x;
 				p[i]=(float)f.y/100f;
@@ -530,19 +533,36 @@ public class Shape
 			else if(hasFlag(TILEMODE.R_REPEAT))m=Shader.TileMode.REPEAT;
 			r=new RadialGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,rr*dp*sc,c,p,m);
 		}
-		if(sweep.size()!=0){
+		if(sweep.size()!=0)
+		{
 			Point p1=radial.get(0);
 			int[] c=new int[radial.size()-1];
 			float[] p=new float[c.length];
-			for(int i=0;i<c.length;i++){
+			for(int i=0;i<c.length;i++)
+			{
 				Point f=radial.get(i+1);
 				c[i]=f.x;
 				p[i]=(float)f.y/100f;
 			}
 			s=new SweepGradient((p1.x*dp+xx)*sc,(p1.y*dp+yy)*sc,c,p);
 		}
-		//Shader tmp=new ComposeShader(l,r,PorterDuff.Mode.ADD);
-		shader=l;//new ComposeShader(l,l,PorterDuff.Mode.ADD);
+		if(l==null)
+			if(r==null)
+				if(s==null)shader=null;
+				else shader=s;
+			else
+			if(s==null)shader=r;
+			else shader=new ComposeShader(r,s,PorterDuff.Mode.ADD);
+		else
+			if(r==null)
+				if(s==null)shader=l;
+				else shader=new ComposeShader(l,s,PorterDuff.Mode.ADD);
+			else
+				if(s==null)shader=new ComposeShader(l,r,PorterDuff.Mode.ADD);
+				else shader=new ComposeShader(
+					new ComposeShader(l,r,PorterDuff.Mode.ADD)
+					,s,PorterDuff.Mode.ADD);
+		return shader;
 	}
 	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
 	{

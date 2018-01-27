@@ -45,11 +45,11 @@ public class Button extends MView
 			if(cx!=0&&cy!=0)rr+=width()*0.1f;
 			if(rr>width())
 			{cx=0;cy=0;rr=0;}
-			pa.setColor(0x55000000);
+			pa.setColor(shadowcolor);
 			c.drawCircle(cx,cy,rr,pa);
 			c.restore();
 		}
-		pa.setColor(0xff000000);
+		pa.setColor(textcolor);
 		c.drawText(txt,centerX(),centerY()+pa.getTextSize()/2,pa);
 	}
 	@Override

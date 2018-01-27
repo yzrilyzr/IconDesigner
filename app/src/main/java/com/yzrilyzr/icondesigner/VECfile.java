@@ -282,15 +282,14 @@ public class VECfile
 		catch (Exception e)
 		{}
 	}
-
-	public static VECfile readFile(String path)throws IllegalStateException,IOException
+	public static VECfile readFileFromIs(InputStream inp)throws IllegalStateException,IOException
 	{
 		VECfile v=new VECfile();
-		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		DataInputStream os=new DataInputStream(inp);
 		byte[] h=new byte[4];
 		os.read(h);
 		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");
-		else if(h[3]==1)return readFileV1(path);
+		else if(h[3]==1)return readV1(inp);
 		else if(h[3]==2)
 		{
 			v.name=os.readUTF();
@@ -359,10 +358,16 @@ public class VECfile
 		}
 		else throw new IllegalStateException("不支持的vec文件");
 	}
-	public static VECfile readFileV1(String path)throws IllegalStateException,IOException
+	public static VECfile readFile(String path)throws IllegalStateException,IOException
 	{
-		VECfile v=new VECfile();
 		DataInputStream os=new DataInputStream(new FileInputStream(path));
+		return readFileFromIs(os);
+	}
+	public static VECfile readV1(InputStream in)throws IllegalStateException,IOException
+	{
+		in.reset();
+		VECfile v=new VECfile();
+		DataInputStream os=new DataInputStream(in);
 		byte[] h=new byte[4];
 		os.read(h);
 		if(!new String(h,0,3).equals("VEC"))throw new IllegalStateException("不是标准的vec文件");

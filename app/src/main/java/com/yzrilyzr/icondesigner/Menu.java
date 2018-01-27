@@ -30,6 +30,7 @@ public class Menu extends MView
 	public void onDraw(Canvas c)
 	{
 		if(!show)return;
+		paint.setShadowLayer(px(2),0,px(2),shadowcolor);
 		c.drawRect(this,paint);
 		for(MView v:views)v.onDraw(c);
 	}

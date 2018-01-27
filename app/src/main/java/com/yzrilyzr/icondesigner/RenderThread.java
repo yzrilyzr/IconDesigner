@@ -81,7 +81,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		canvas.drawColor(MView.buttoncolor);
 		canvas.drawBitmap(icon,(surface.getWidth()-icon.getWidth())/2,(surface.getHeight()-icon.getHeight())/2,paint);
 		paint.setTextAlign(Paint.Align.CENTER);
-		paint.setColor(0xff000000);
+		paint.setColor(MView.textcolor);
 		canvas.drawText("图标设计",surface.getWidth()/2,surface.getHeight()*0.6f,paint);
 		canvas.drawText("@Besto Design",surface.getWidth()/2,surface.getHeight()*0.7f,paint);
 		icon.recycle();
@@ -754,6 +754,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 								else if(j==14)
 								{
 									if(i==6||i==7)tmpPoint=tmpShape.linear.get(i-6);
+									else if(i==8||i==9)tmpPoint=tmpShape.radial.get(i-8);
+									else if(i==10)tmpPoint=tmpShape.sweep.get(0);
 								}
 								else if(j==15)
 								{
@@ -1273,9 +1275,9 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				((Button)m.views.get(i)).selected=colorShape.hasFlag(Shape.STROKE.BUTT*(long)Math.pow(2,i-2));
 		else if(j==14)
 		{
-			((SeekBar)m.views.get(3)).setProgress(tmpShape.linear.size());
-			((SeekBar)m.views.get(4)).setProgress(tmpShape.radial.size());
-			((SeekBar)m.views.get(5)).setProgress(tmpShape.sweep.size());
+			((SeekBar)m.views.get(3)).setProgress(tmpShape.linear.size()==0?0:1);
+			((SeekBar)m.views.get(4)).setProgress(tmpShape.radial.size()==0?0:1);
+			((SeekBar)m.views.get(5)).setProgress(tmpShape.sweep.size()==0?0:1);
 		}
 	}
 	public void saveUndo()
