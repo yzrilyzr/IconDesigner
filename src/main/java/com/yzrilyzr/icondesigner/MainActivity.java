@@ -19,12 +19,38 @@ import android.content.SharedPreferences;
 public class MainActivity extends Activity 
 {
 	long time=0;
+	static String file;
 	@Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
 		setContentView(new MainView(this));
+		try
+        {
+            file=getIntent().getDataString();
+            file=Uri.parse(file).getPath();
+        }
+        catch(Exception e)
+        {
+			file=null;
+		}
     }
+
+	@Override
+	protected void onNewIntent(Intent intent)
+	{
+		super.onNewIntent(intent);
+		try
+        {
+            file=intent.getDataString();
+            file=Uri.parse(file).getPath();
+        }
+        catch(Exception e)
+        {
+			file=null;
+		}
+	}
+	
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
@@ -46,7 +72,7 @@ public class MainActivity extends Activity
 	{
 		if(keyCode==KeyEvent.KEYCODE_BACK&&time+1000<System.currentTimeMillis())
 		{
-			MainView.render.toast("再按一次退出");
+			MainView.render.toast(getResources().getString(R.string.again_exit));
 			time=System.currentTimeMillis();
 			return true;
 		}

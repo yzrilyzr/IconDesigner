@@ -383,7 +383,7 @@ public class Shape
 			}
 			c.drawPath(pa,sp);
 			for(int i=1;i<pts.size();i++)
-				if(MainView.render.tmpShape==this)
+				if(MainView.render!=null&&MainView.render.tmpShape==this)
 				{
 					Point t=pts.get(i);
 					PointF pf=new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);

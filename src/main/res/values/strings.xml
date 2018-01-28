@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">IconDesigner</string>
-    <string name="hello_world">Hello world!</string>
-
+    <string name="app_name">图标设计</string>
+    <string name="open_failed">打开失败</string>
+	<string name="not_vec">不是标准的VEC文件</string>
+	<string name="illegal_num">数值非法</string>
+	<string name="open_tmp_failed">打开临时文件失败</string>
+	<string name="shape_not_chosen">未选择图形</string>
+	<string name="again_exit">再按一次退出</string>
 </resources>

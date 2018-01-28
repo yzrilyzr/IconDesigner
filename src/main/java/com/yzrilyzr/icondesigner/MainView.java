@@ -48,6 +48,22 @@ public class MainView extends SurfaceView implements Callback
 			render.start();
 		}
 		else render.surface=this;
+		try
+		{
+			if(MainActivity.file!=null){
+				render.vec=VECfile.readFile(MainActivity.file);
+				render.initPosition();
+			}
+			MainActivity.file=null;
+		}
+		catch (IllegalStateException e)
+		{
+			render.toast(getStr(R.string.not_vec));
+		}
+		catch (Exception e)
+		{
+			render.toast(getStr(R.string.open_failed));
+		}
 	}
 	@Override
 	public boolean onTouchEvent(MotionEvent event)
@@ -61,4 +77,7 @@ public class MainView extends SurfaceView implements Callback
         outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
         return render;
     }
+	public String getStr(int id,Object... f){
+		return getContext().getResources().getString(id,f);
+	}
 }

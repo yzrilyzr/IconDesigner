@@ -49,31 +49,42 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public ColorView curColorView;//当前颜色
 	public CopyOnWriteArrayList<MView> mview=new CopyOnWriteArrayList<MView>();
 	public StringBuilder info=new StringBuilder();
-	public File localFile=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/");
+	public File localFile=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计");
 	public SurfaceView surface;
 	public Toast toast;
 	public int isTutorial=0;
 	public RenderThread(SurfaceView surface)
 	{
+		if(!localFile.exists()){
+			localFile.mkdirs();
+		}
 		Thread.currentThread().setDefaultUncaughtExceptionHandler(this);
 		Runtime.getRuntime().addShutdownHook(new Thread(){
 				@Override public void run()
 				{
-					vec.saveFile(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/.tmp.vec");
+					vec.saveFile(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计/.tmp.vec");
 				}
 			});
 		this.surface = surface;
 		this.ctx=(MainActivity)surface.getContext();
 		MView.render=this;
 		dpi=ctx.getResources().getDisplayMetrics().density;
-		icon=BitmapFactory.decodeResource(surface.getResources(),R.drawable.icon);
-		folder=BitmapFactory.decodeResource(surface.getResources(),R.drawable.folder);
-		file=BitmapFactory.decodeResource(surface.getResources(),R.drawable.file);
-		vecfile=BitmapFactory.decodeResource(surface.getResources(),R.drawable.vecfile);
-		upparent=BitmapFactory.decodeResource(surface.getResources(),R.drawable.upparent);
-		Matrix m=new Matrix();
-		m.postScale((float)MView.px(80)/(float)icon.getWidth(),(float)MView.px(80)/(float)icon.getHeight());
-		icon=Bitmap.createBitmap(icon,0,0,icon.getWidth(),icon.getHeight(),m,false);
+		try
+		{
+			icon=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("icon.vec")),MView.px(80),MView.px(80));
+			folder=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("folder.vec")),MView.px(50),MView.px(50));
+			file=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("file.vec")),MView.px(50),MView.px(50));
+			vecfile=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("vecfile.vec")),MView.px(50),MView.px(50));
+			upparent=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("upparent.vec")),MView.px(50),MView.px(50));
+		}
+		catch (IllegalStateException e)
+		{
+			toast(getStr(R.string.not_vec));
+		}
+		catch (Exception e)
+		{
+			toast(getStr(R.string.open_failed));
+		}
 		Bitmap la=Bitmap.createBitmap(surface.getWidth(),surface.getHeight(),Bitmap.Config.ARGB_8888);
 		Canvas canvas=new Canvas(la);
 		Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -82,7 +93,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		canvas.drawBitmap(icon,(surface.getWidth()-icon.getWidth())/2,(surface.getHeight()-icon.getHeight())/2,paint);
 		paint.setTextAlign(Paint.Align.CENTER);
 		paint.setColor(MView.textcolor);
-		canvas.drawText("图标设计",surface.getWidth()/2,surface.getHeight()*0.6f,paint);
+		canvas.drawText(getStr(R.string.app_name),surface.getWidth()/2,surface.getHeight()*0.6f,paint);
 		canvas.drawText("@Besto Design",surface.getWidth()/2,surface.getHeight()*0.7f,paint);
 		icon.recycle();
 		icon=la;
@@ -91,18 +102,16 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			@Override
 			public void run()
 			{
-				File f=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/.tmp.vec");
+				File f=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计/.tmp.vec");
 				if(f.exists())
 				{
 					try
 					{
-						VECfile g=VECfile.readFile(f.getAbsolutePath());
-						if(g!=null)vec=g;
+						vec=VECfile.readFile(f.getAbsolutePath());
+						initPosition();
 					}
-					catch (IllegalStateException e)
-					{toast("打开临时文件失败");}
-					catch (IOException e)
-					{}
+					catch (Exception e)
+					{toast(getStr(R.string.open_tmp_failed));}
 				}
 				while(true)
 					try
@@ -179,7 +188,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	{
 		try
 		{
-			FileOutputStream os=new FileOutputStream(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/err.txt");
+			FileOutputStream os=new FileOutputStream(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计/err.txt");
 			PrintWriter ps=new PrintWriter(os);
 			p2.printStackTrace(ps);
 			ps.flush();
@@ -584,15 +593,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 														  m.show=false;
 													  }
 												  }
-												  catch (IOException e)
-												  {
-													  ByteArrayOutputStream o=new ByteArrayOutputStream();
-													  PrintWriter pw=new PrintWriter(o);
-													  e.printStackTrace(pw);pw.close();
-													  toast("读取错误:"+o.toString());
-												  }
 												  catch (IllegalStateException e)
-												  {toast("不是标准的VEC文件");}
+												  {toast(getStr(R.string.not_vec));}
+												  catch (Exception e)
+												  {
+													  toast(getStr(R.string.open_failed));
+												  }
 											  }
 										  }
 										  else
@@ -688,7 +694,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 														else tmpPoint=null;
 													}
 													catch(Throwable e)
-													{toast("数值非法");}
+													{toast(getStr(R.string.illegal_num));}
 												}
 											})
 											.setNegativeButton("取消",null)
@@ -1248,7 +1254,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		Menu m=mm[j];
 		if(tmpShape==null&&(j==14||j==15))
 		{
-			toast("未选择图形");
+			toast(getStr(R.string.shape_not_chosen));
 			m.show=false;
 			return;
 		}
@@ -1437,5 +1443,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			.getSystemService(Context.INPUT_METHOD_SERVICE);
 		imm.showSoftInput(surface,InputMethodManager.SHOW_IMPLICIT);
 
+	}
+	public String getStr(int id,Object... f){
+		return ctx.getResources().getString(id,f);
 	}
 }

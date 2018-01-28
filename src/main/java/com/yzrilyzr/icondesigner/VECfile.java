@@ -13,15 +13,15 @@ import java.util.Iterator;
 
 public class VECfile
 {
-	int width,height;//图像大小
-	float dp;//精度
+	public int width,height;//图像大小
+	public float dp;//精度
 	int backgcolor=0;
-	CopyOnWriteArrayList<Shape> shapes=new CopyOnWriteArrayList<Shape>();
-	Paint sp=new Paint();//形状
+	public CopyOnWriteArrayList<Shape> shapes=new CopyOnWriteArrayList<Shape>();
+	public Paint sp=new Paint();//形状
 	String name="",comm="",bgpath=null;
 	public Bitmap front=null,back=null,front2=null;
 	Canvas can,can2;
-	boolean antialias=false,dither=false,which=false,lock=false;
+	public boolean antialias=false,dither=false,which=false,lock=false;
 	Shape tmpShape;
 	public VECfile(int width,int height,float dp,String b)
 	{
@@ -216,7 +216,14 @@ public class VECfile
 		catch (Exception e)
 		{}
 	}
-
+	public static Bitmap createBitmap(VECfile vv,int width,int height) throws IllegalStateException{
+		Bitmap b=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+		Canvas can=new Canvas(b);
+		can.drawColor(vv.backgcolor);
+		for(Shape s:vv.shapes)
+			s.onDraw(can,vv.antialias,vv.dither,0,0,(float)width/(float)vv.width,vv.dp,vv.sp);
+		return b;
+	}
 	public void saveFile(String path)
 	{
 		try
