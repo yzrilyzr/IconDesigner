@@ -2,14 +2,14 @@ package com.yzrilyzr.icondesigner;
 
 import java.io.*;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Point;
 import com.yzrilyzr.icondesigner.Shape;
 import java.util.concurrent.CopyOnWriteArrayList;
-import android.graphics.BitmapFactory;
-import java.util.Iterator;
 
 public class VECfile
 {
@@ -216,13 +216,20 @@ public class VECfile
 		catch (Exception e)
 		{}
 	}
-	public static Bitmap createBitmap(VECfile vv,int width,int height) throws IllegalStateException{
+	public static Bitmap createBitmap(VECfile vv,int width,int height) throws IllegalStateException
+	{
 		Bitmap b=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
 		Canvas can=new Canvas(b);
 		can.drawColor(vv.backgcolor);
 		for(Shape s:vv.shapes)
 			s.onDraw(can,vv.antialias,vv.dither,0,0,(float)width/(float)vv.width,vv.dp,vv.sp);
 		return b;
+	}
+	public static Bitmap createBitmap(Context ctx,String assetPath,int width,int height)throws Exception
+	{
+		InputStream is=ctx.getAssets().open(assetPath+".vec");
+		VECfile vec=VECfile.readFileFromIs(is);
+		return createBitmap(vec,width,height);
 	}
 	public void saveFile(String path)
 	{

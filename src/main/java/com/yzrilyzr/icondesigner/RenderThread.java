@@ -30,7 +30,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 {
 	public MainActivity ctx;
 	public float dpi;
-	public VECfile vec=new VECfile(384,384,3.84f,null);//文件
+	public VECfile vec=new VECfile(384,384,19.2f,null);//文件
 	public VECfile.Builder builder=new VECfile.Builder();
 	public Shape tmpShape,colorShape=new Shape(Shape.STYLE.FILL|Shape.STROKE.BUTT|Shape.STROKE.MITER);//临时和颜色
 	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退,位移

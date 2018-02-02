@@ -17,10 +17,12 @@ public class VecView extends ImageView
 		super(c,a);
 		try
 		{
-			TypedArray t=c.obtainStyledAttributes(a,R.styleable.yzr);
-			String d=t.getString(R.styleable.yzr_src)+".vec";
-			InputStream i=c.getAssets().open(d);
-			vec=VECfile.readFileFromIs(i);
+			String d=a.getAttributeValue(null,"vec")+".vec";
+			if(d!=null)
+			{
+				InputStream i=c.getAssets().open(d);
+				vec=VECfile.readFileFromIs(i);
+			}
 		}
 		catch(Throwable e)
 		{}
@@ -28,11 +30,12 @@ public class VecView extends ImageView
 	@Override
 	protected void onDraw(Canvas canvas)
 	{
-		if(vec!=null){
+		if(vec!=null)
+		{
 			canvas.drawColor(vec.backgcolor);
 			for(Shape s:vec.shapes)
 				s.onDraw(canvas,vec.antialias,vec.dither,0,0,(float)getWidth()/(float)vec.width,vec.dp,vec.sp);
-			}
+		}
 	}
 	public VecView(Context c)
 	{

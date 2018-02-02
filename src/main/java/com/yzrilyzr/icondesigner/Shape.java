@@ -382,8 +382,8 @@ public class Shape
 				fs(sp);
 			}
 			c.drawPath(pa,sp);
-			for(int i=1;i<pts.size();i++)
-				if(MainView.render!=null&&MainView.render.tmpShape==this)
+			if(MainView.render!=null&&MainView.render.tmpShape==this)
+				for(int i=1;i<pts.size();i++)
 				{
 					Point t=pts.get(i);
 					PointF pf=new PointF((t.x*dp+xx)*sc,(t.y*dp+yy)*sc);
@@ -554,14 +554,14 @@ public class Shape
 			if(s==null)shader=r;
 			else shader=new ComposeShader(r,s,PorterDuff.Mode.ADD);
 		else
-			if(r==null)
-				if(s==null)shader=l;
-				else shader=new ComposeShader(l,s,PorterDuff.Mode.ADD);
-			else
-				if(s==null)shader=new ComposeShader(l,r,PorterDuff.Mode.ADD);
-				else shader=new ComposeShader(
-					new ComposeShader(l,r,PorterDuff.Mode.ADD)
-					,s,PorterDuff.Mode.ADD);
+		if(r==null)
+			if(s==null)shader=l;
+			else shader=new ComposeShader(l,s,PorterDuff.Mode.ADD);
+		else
+		if(s==null)shader=new ComposeShader(l,r,PorterDuff.Mode.ADD);
+		else shader=new ComposeShader(
+				new ComposeShader(l,r,PorterDuff.Mode.ADD)
+				,s,PorterDuff.Mode.ADD);
 		return shader;
 	}
 	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
