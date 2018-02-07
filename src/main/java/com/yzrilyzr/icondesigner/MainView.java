@@ -34,6 +34,12 @@ public class MainView extends SurfaceView implements Callback
 	@Override
 	public void surfaceDestroyed(SurfaceHolder p1)
 	{
+		if(render!=null)
+			getContext()
+			.getSharedPreferences("path",getContext().MODE_PRIVATE)
+			.edit()
+			.putString("path",render.localFile.getAbsolutePath())
+			.commit();
 	}
 	@Override
 	public void surfaceChanged(SurfaceHolder p1, int p2, int p3, int p4)

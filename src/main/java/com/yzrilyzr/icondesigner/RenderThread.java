@@ -49,15 +49,18 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public ColorView curColorView;//当前颜色
 	public CopyOnWriteArrayList<MView> mview=new CopyOnWriteArrayList<MView>();
 	public StringBuilder info=new StringBuilder();
-	public File localFile=new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计");
+	public File localFile;
 	public SurfaceView surface;
 	public Toast toast;
 	public int isTutorial=0;
 	public RenderThread(SurfaceView surface)
 	{
-		if(!localFile.exists()){
-			localFile.mkdirs();
-		}
+		this.surface = surface;
+		this.ctx=(MainActivity)surface.getContext();
+		MView.render=this;
+		dpi=ctx.getResources().getDisplayMetrics().density;
+		localFile=new File(ctx.getSharedPreferences("path",ctx.MODE_PRIVATE).getString("path",Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计"));
+		if(!localFile.exists())localFile.mkdirs();
 		Thread.currentThread().setDefaultUncaughtExceptionHandler(this);
 		Runtime.getRuntime().addShutdownHook(new Thread(){
 				@Override public void run()
@@ -65,10 +68,6 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					vec.saveFile(Environment.getExternalStorageDirectory().getAbsolutePath()+"/yzr的app/图标设计/.tmp.vec");
 				}
 			});
-		this.surface = surface;
-		this.ctx=(MainActivity)surface.getContext();
-		MView.render=this;
-		dpi=ctx.getResources().getDisplayMetrics().density;
 		try
 		{
 			icon=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("icon.vec")),MView.px(80),MView.px(80));

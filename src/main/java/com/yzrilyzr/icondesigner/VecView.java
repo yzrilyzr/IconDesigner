@@ -1,9 +1,7 @@
 package com.yzrilyzr.icondesigner;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 import java.io.IOException;
@@ -36,21 +34,24 @@ public class VecView extends ImageView
 			for(Shape s:vec.shapes)
 				s.onDraw(canvas,vec.antialias,vec.dither,0,0,(float)getWidth()/(float)vec.width,vec.dp,vec.sp);
 		}
+		else super.onDraw(canvas);
 	}
 	public VecView(Context c)
 	{
 		this(c,null);
 	}
-	public void setVec(String assetPath)
+	public void setImageVec(String assetPath)
 	{
-		try
-		{
-			InputStream is=getContext().getAssets().open(assetPath+".vec");
-			vec=VECfile.readFileFromIs(is);
-			invalidate();
-		}
-		catch (IOException e)
-		{
-		}
+		if(assetPath==null)vec=null;
+		else
+			try
+			{
+				InputStream is=getContext().getAssets().open(assetPath+".vec");
+				vec=VECfile.readFileFromIs(is);
+			}
+			catch (IOException e)
+			{
+			}
+		invalidate();
 	}
 }
