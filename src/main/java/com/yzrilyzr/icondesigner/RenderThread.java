@@ -1,12 +1,18 @@
 package com.yzrilyzr.icondesigner;
 
-import android.graphics.*;
 import android.view.inputmethod.*;
 
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Point;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.KeyEvent;
@@ -20,7 +26,6 @@ import com.yzrilyzr.icondesigner.Shape;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -883,6 +888,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										 }
 										 else*/
 										vec.loadoutFile(f);
+										MediaScannerConnection.scanFile(ctx,new String[]{f}, null,new MediaScannerConnection.OnScanCompletedListener() {
+												@Override
+												public void onScanCompleted(String path, Uri uri)
+												{
+												}
+											});
 										me[23].show=false;
 									}
 									else if(i==3)
@@ -1443,7 +1454,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		imm.showSoftInput(surface,InputMethodManager.SHOW_IMPLICIT);
 
 	}
-	public String getStr(int id,Object... f){
+	public String getStr(int id,Object... f)
+	{
 		return ctx.getResources().getString(id,f);
 	}
 }
