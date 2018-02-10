@@ -24,6 +24,7 @@ public class VecView extends ImageView
 		}
 		catch(Throwable e)
 		{}
+		setLayerType(LAYER_TYPE_HARDWARE,null);
 	}
 	@Override
 	protected void onDraw(Canvas canvas)
