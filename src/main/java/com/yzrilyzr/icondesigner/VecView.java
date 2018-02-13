@@ -20,11 +20,12 @@ public class VecView extends ImageView
 			{
 				InputStream i=c.getAssets().open(d);
 				vec=VECfile.readFileFromIs(i);
+				vec.recycle();
 			}
 		}
 		catch(Throwable e)
 		{}
-		setLayerType(LAYER_TYPE_HARDWARE,null);
+		setLayerType(LAYER_TYPE_SOFTWARE,null);
 	}
 	@Override
 	protected void onDraw(Canvas canvas)
@@ -43,12 +44,15 @@ public class VecView extends ImageView
 	}
 	public void setImageVec(String assetPath)
 	{
-		if(assetPath==null)vec=null;
+		if(assetPath==null){
+			vec=null;
+		}
 		else
 			try
 			{
 				InputStream is=getContext().getAssets().open(assetPath+".vec");
 				vec=VECfile.readFileFromIs(is);
+				vec.recycle();
 			}
 			catch (IOException e)
 			{

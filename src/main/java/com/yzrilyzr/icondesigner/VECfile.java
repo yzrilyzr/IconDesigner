@@ -164,6 +164,11 @@ public class VECfile
 			}
 		}
 	}
+	public void recycle(){
+		if(back!=null)back.recycle();
+		if(front!=null)front.recycle();
+		if(front2!=null)front2.recycle();
+	}
 	public VECfile()
 	{}
 	public void onDraw()
@@ -223,6 +228,8 @@ public class VECfile
 		can.drawColor(vv.backgcolor);
 		for(Shape s:vv.shapes)
 			s.onDraw(can,vv.antialias,vv.dither,0,0,(float)width/(float)vv.width,vv.dp,vv.sp);
+		vv.recycle();
+		vv.shapes.clear();
 		return b;
 	}
 	public static Bitmap createBitmap(Context ctx,String assetPath,int width,int height)throws Exception
