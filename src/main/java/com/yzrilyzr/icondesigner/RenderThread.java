@@ -30,6 +30,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import android.os.Handler;
 
 public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
@@ -1453,6 +1454,32 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			.getSystemService(Context.INPUT_METHOD_SERVICE);
 		imm.showSoftInput(surface,InputMethodManager.SHOW_IMPLICIT);
 
+	}
+	@Override
+	public boolean deleteSurroundingTextInCodePoints(int p1, int p2)
+	{
+		// TODO: Implement this method
+		return false;
+	}
+
+	@Override
+	public void closeConnection()
+	{
+		// TODO: Implement this method
+	}
+
+	@Override
+	public boolean commitContent(InputContentInfo p1, int p2, Bundle p3)
+	{
+		// TODO: Implement this method
+		return false;
+	}
+
+	@Override
+	public Handler getHandler()
+	{
+		// TODO: Implement this method
+		return null;
 	}
 	public String getStr(int id,Object... f)
 	{
