@@ -587,8 +587,6 @@ public class VECfile
 							break;
 						case "Shape":
 							tmp=new Shape(0);
-							break;
-						case "SData":
 							tmp.flag=Long.parseLong(a.getValue("flag"));
 							if(tmp.hasFlag(Shape.TYPE.TEXT))tmp.txt=a.getValue("text");
 							break;
@@ -601,7 +599,7 @@ public class VECfile
 								Shape.PathPoint po=new Shape.PathPoint();
 								po.x=Integer.parseInt(a.getValue("x"));
 								po.y=Integer.parseInt(a.getValue("y"));
-								String h=a.getValue("type");
+								String h=a.getValue("t");
 								if(h!=null)po.type=Byte.parseByte(h);
 								tmp.pts.add(po);
 							}
@@ -703,11 +701,9 @@ public class VECfile
 			a.clear();
 			for(Shape s:shapes)
 			{
-				handler.startElement("","","Shape",a);
 				a.addAttribute("","","flag","",Long.toString(s.flag));
 				if(s.hasFlag(Shape.TYPE.TEXT))a.addAttribute("","","text","",s.txt);
-				handler.startElement("","","SData",a);
-				handler.endElement("","","SData");
+				handler.startElement("","","Shape",a);
 				a.clear();
 				handler.startElement("","","Points",a);
 				boolean bool=false;
@@ -716,7 +712,7 @@ public class VECfile
 					{
 						a.addAttribute("","","x","",Integer.toString(po.x));
 						a.addAttribute("","","y","",Integer.toString(po.y));
-						if(bool)a.addAttribute("","","type","",Integer.toString(((Shape.PathPoint)po).type));
+						if(bool)a.addAttribute("","","t","",Integer.toString(((Shape.PathPoint)po).type));
 						handler.startElement("","","P",a);
 						handler.endElement("","","P");
 						a.clear();

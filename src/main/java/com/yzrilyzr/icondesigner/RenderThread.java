@@ -42,7 +42,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public Point tmpPoint,tmpPoint2,tmpPoint3;//临时和回退,位移
 	public int alpha=255;
 	public MView curView;//逻辑view
-	public Bitmap icon,folder,file,vecfile,upparent;
+	public Bitmap icon,folder,file,vecfile,upparent,xml;
 	public int ram=0,fps=0;
 	public float deltax,deltay,scale,lscale,lpointLen;//上次缩放，长度
 	public CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>> undo=new CopyOnWriteArrayList<CopyOnWriteArrayList<Shape>>();
@@ -76,11 +76,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			});
 		try
 		{
-			icon=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("icon.vec")),MView.px(80),MView.px(80));
-			folder=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("folder.vec")),MView.px(50),MView.px(50));
-			file=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("file.vec")),MView.px(50),MView.px(50));
-			vecfile=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("vecfile.vec")),MView.px(50),MView.px(50));
-			upparent=VECfile.createBitmap(VECfile.readFileFromIs(ctx.getAssets().open("upparent.vec")),MView.px(50),MView.px(50));
+			icon=VECfile.createBitmap(ctx,"icon",MView.px(80),MView.px(80));
+			folder=VECfile.createBitmap(ctx,"folder",MView.px(50),MView.px(50));
+			file=VECfile.createBitmap(ctx,"file",MView.px(50),MView.px(50));
+			vecfile=VECfile.createBitmap(ctx,"vecfile",MView.px(50),MView.px(50));
+			upparent=VECfile.createBitmap(ctx,"upparent",MView.px(50),MView.px(50));
+			xml=VECfile.createBitmap(ctx,"xml",MView.px(50),MView.px(50));
 		}
 		catch (IllegalStateException e)
 		{
@@ -1217,7 +1218,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			new List(bs,bs*3,bs*7,bs*9),
 			new Menu(bs,bs*3,bs*7,bs*9,
 					 new Edit(bs,bs*3,bs*4,bs,""),
-					 new Button(bs*7,bs*3,bs,bs,"导出",sv),
+					 new Button(bs*7,bs*3,bs,bs,"导出png",sv),
 					 new List(bs,bs*4,bs*7,bs*8),
 					 new Button(bs*6,bs*3,bs,bs,"导出清单",sv),
 					 new Button(bs*5,bs*3,bs,bs,"导出xml",sv)),
