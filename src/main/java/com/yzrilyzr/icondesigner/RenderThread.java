@@ -15,6 +15,7 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
@@ -30,7 +31,6 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
-import android.os.Handler;
 
 public class RenderThread extends Thread implements InputConnection,Thread.UncaughtExceptionHandler
 {
@@ -452,7 +452,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 				{
 					Menu m=me[25];
 					((Edit)m.views.get(1)).txt=vec.name;
-					((Edit)m.views.get(3)).txt=vec.comm;
+					((Edit)m.views.get(3)).txt=vec.info;
 					((Edit)m.views.get(5)).txt=vec.width+"";
 					((Edit)m.views.get(7)).txt=vec.height+"";
 					((Edit)m.views.get(9)).txt=vec.width/vec.dp+"";
@@ -588,7 +588,11 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 											  {
 												  try
 												  {
-													  VECfile v=VECfile.readFile(f.getAbsolutePath());
+													  VECfile v=null;
+													  if(f.getName().toLowerCase().endsWith(".vec"))
+														  v=VECfile.readFile(f.getAbsolutePath());
+													  else if(f.getName().toLowerCase().endsWith(".xml"))
+														  v=VECfile.readXml(f.getAbsolutePath());
 													  if(v!=null)
 													  {
 														  vec=v;
@@ -767,6 +771,15 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									if(i==6||i==7)tmpPoint=tmpShape.linear.get(i-6);
 									else if(i==8||i==9)tmpPoint=tmpShape.radial.get(i-8);
 									else if(i==10)tmpPoint=tmpShape.sweep.get(0);
+									else if(i>=14&&i<=16)
+									{
+										tmpShape.setFlag(Shape.TILEMODE.L_CLAMP*(long)Math.pow(2,i-14),Shape.TILEMODE.L_ALL);
+									}
+									else if(i>=17&&i<=19)
+									{
+										tmpShape.setFlag(Shape.TILEMODE.R_CLAMP*(long)Math.pow(2,i-17),Shape.TILEMODE.R_ALL);
+									}
+
 								}
 								else if(j==15)
 								{
@@ -814,6 +827,15 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										}
 									}
 								}
+								else if(j==17)
+								{
+									if(tmpPoint!=null)
+										if(i==0)cx=--tmpPoint.x;
+										else if(i==1)cy=--tmpPoint.y;
+										else if(i==2)cx=++tmpPoint.x;
+										else if(i==3)cy=++tmpPoint.y;
+									if(i==4)me[17].show=false;
+								}
 								else if(j==25)
 								{
 									if(i==11)
@@ -833,7 +855,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										try
 										{
 											vec.name=((Edit)m.views.get(1)).txt;
-											vec.comm=((Edit)m.views.get(3)).txt;
+											vec.info=((Edit)m.views.get(3)).txt;
 											vec.antialias=((SeekBar)m.views.get(14)).getProgress()==0?false:true;
 											vec.dither=((SeekBar)m.views.get(16)).getProgress()==0?false:true;
 											vec.backgcolor=builder.backgcolor;
@@ -878,7 +900,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									vec.saveFile(f);
 									me[20].show=false;
 								}
-								else if(j==23)
+								else if(j==23){
 									if(i==1)
 									{
 										String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".png";
@@ -909,6 +931,19 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										vec.loadoutTxtFile(f);
 										me[23].show=false;
 									}
+									else if(i==4)
+									{
+										String f=localFile.getAbsolutePath()+"/"+((Edit)((Menu)b.parent).views.get(0)).txt+".xml";
+										/*if(new File(f).exists())
+										 {
+										 me[20].showMenu;
+										 ((Button)me[20].views.get(1)).txt="发现同名文件，是否替换？";
+										 }
+										 else*/
+										vec.saveXml(f);
+										me[23].show=false;
+									}
+								}
 								setTmpShape();
 							}
 						}
@@ -971,7 +1006,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										{
 											tmpShape.linear.add(new Point(0,0));
 											tmpShape.linear.add(new Point(0,0));
-											tmpShape.linear.add(new Point(0xffff00000,50));
+											tmpShape.linear.add(new Point(0xffff00000,0));
 											tmpShape.linear.add(new Point(0xff00ff000,100));
 										}
 									else if(i==4)
@@ -979,17 +1014,17 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										else
 										{
 											tmpShape.radial.add(new Point(0,0));
-											tmpShape.radial.add(new Point(1,1));
-											tmpShape.radial.add(new Point(0xffff00000,50));
-											tmpShape.radial.add(new Point(0xff00ff000,50));
+											tmpShape.radial.add(new Point(0,0));
+											tmpShape.radial.add(new Point(0xffff00000,0));
+											tmpShape.radial.add(new Point(0xff00ff000,100));
 										}
 									else if(i==5)
 										if(p==0)tmpShape.sweep.clear();
 										else
 										{
 											tmpShape.sweep.add(new Point(0,0));
-											tmpShape.sweep.add(new Point(0xffff00000,50));
-											tmpShape.sweep.add(new Point(0xff00ff000,50));
+											tmpShape.sweep.add(new Point(0xffff00000,0));
+											tmpShape.sweep.add(new Point(0xff00ff000,100));
 										}
 									//colorShape.createShader(0,0,vec.dp,1);
 								}
@@ -1025,7 +1060,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			new Button(bs*8,bs*7,bs,bs,"着色器",ev),
 			new Button(bs*8,bs*8,bs,bs,"形状设置",ev),
 			new Button(bs*8,bs*9,bs,bs,"线特效",ev),
-			new Button(bs*8,bs*10,bs,bs,"笔触",ev));
+			new Button(bs*8,bs*10,bs,bs,"小键盘",ev));
 		addView(
 			new Menu(bs,bs*14,bs*3,bs*1,
 					 new Button(bs,bs*14,bs,bs,"点1",sv),
@@ -1126,7 +1161,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*5,bs*14,bs,bs,"圆角",sv),
 					 new Button(bs*6,bs*14,bs,bs,"锐角",sv),
 					 new Button(bs*7,bs*14,bs,bs,"直线",sv)),
-			new Menu(bs,bs*12,bs*6,bs*3,
+			new Menu(bs,bs*12,bs*9,bs*3,
 					 new Button(bs,bs*12,bs,bs,"线性",null),
 					 new Button(bs,bs*13,bs,bs,"辐射",null),
 					 new Button(bs,bs*14,bs,bs,"扫描",null),
@@ -1141,8 +1176,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*5,bs*12,bs,bs,"参数",sv),
 					 new Button(bs*5,bs*13,bs,bs,"参数",sv),
 					 new Button(bs*4,bs*14,bs,bs,"参数",sv),
-					 new Button(bs*6,bs*12,bs,bs,"模式",sv),
-					 new Button(bs*6,bs*13,bs,bs,"模式",sv)
+					 new Button(bs*6,bs*12,bs,bs,"边缘",sv),
+					 new Button(bs*7,bs*12,bs,bs,"镜像",sv),
+					 new Button(bs*8,bs*12,bs,bs,"重复",sv),
+					 new Button(bs*6,bs*13,bs,bs,"边缘",sv),
+					 new Button(bs*7,bs*13,bs,bs,"镜像",sv),
+					 new Button(bs*8,bs*13,bs,bs,"重复",sv)
 					 ),
 			new Menu(bs,bs*12,bs*2,bs*3,
 					 new Button(bs,bs*12,bs,bs,"复制",sv),
@@ -1153,7 +1192,12 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*2,bs*14,bs,bs,"下层",sv)
 					 ),
 			new Menu(bs,bs*11,bs*7,bs*4),
-			new Menu(bs,bs*11,bs*7,bs*4),
+			new Menu(bs,bs*12,bs*3,bs*3,
+					 new Button(bs,bs*13,bs,bs,"←",sv),
+					 new Button(bs*2,bs*12,bs,bs,"↑",sv),
+					 new Button(bs*3,bs*13,bs,bs,"→",sv),
+					 new Button(bs*2,bs*14,bs,bs,"↓",sv),
+					 new Button(bs*2,bs*13,bs,bs,"●",sv)),
 			new Menu(bs,bs*3,bs*7,bs*7,
 					 new ColorPicker(bs,bs*3,bs*7,bs*3),
 					 new SeekBar(bs,bs*6,bs*7,bs,0,255),
@@ -1172,10 +1216,11 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*5,bs*8,bs*2,bs,"取消",null)),
 			new List(bs,bs*3,bs*7,bs*9),
 			new Menu(bs,bs*3,bs*7,bs*9,
-					 new Edit(bs,bs*3,bs*5,bs,""),
+					 new Edit(bs,bs*3,bs*4,bs,""),
 					 new Button(bs*7,bs*3,bs,bs,"导出",sv),
 					 new List(bs,bs*4,bs*7,bs*8),
-					 new Button(bs*6,bs*3,bs,bs,"导出清单",sv)),
+					 new Button(bs*6,bs*3,bs,bs,"导出清单",sv),
+					 new Button(bs*5,bs*3,bs,bs,"导出xml",sv)),
 			new Menu(bs*3,bs*5,bs*3,bs*5,
 					 new Button(bs*3,bs*5,bs,bs,"宽",null),
 					 new Edit(bs*4,bs*5,bs*2,bs,""),

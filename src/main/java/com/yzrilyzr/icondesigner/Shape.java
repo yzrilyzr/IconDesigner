@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Shape
+public final class Shape
 {
 	public ArrayList<Point> pts=new ArrayList<Point>();
 	public int[] par=new int[]{
@@ -26,6 +26,18 @@ public class Shape
 	public ArrayList<Point> sweep=new ArrayList<Point>();
 	public long flag=0;
 	public String txt="";
+	public void setColor(int color){
+		par[0]=color;
+	}
+	public int getColor(){
+		return par[0];
+	}
+	public void setStrokeColor(int color){
+		par[1]=color;
+	}
+	public int getStrokeColor(){
+		return par[1];
+	}
 	public static final class TEXT
 	{
 		public static final long
@@ -182,7 +194,7 @@ public class Shape
 	{
 		flag=(flag|all)-all+f;
 	}
-	public void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp,Paint sp)
+	public final void onDraw(Canvas c,boolean antia,boolean dither,float xx,float yy,float sc,float dp,Paint sp)
 	{
 		Shader shader=createShader(xx,yy,dp,sc);
 		PathEffect pathEffect=null;
@@ -205,8 +217,9 @@ public class Shape
 		sp.setStrokeWidth((float)par[3]/100f*dp*sc);
 		sp.setPathEffect(pathEffect);
 		sp.setShader(shader);
-		sp.setShadowLayer((float)par[6]/100f*dp*sc,(par[4]*dp+xx)*sc,(par[5]*dp+yy)*sc,par[7]);
-
+		if(par[6]!=0)sp.setShadowLayer((float)par[6]/100f*dp*sc,par[4]*dp,par[5]*dp,par[7]);
+		else sp.setShadowLayer(0,0,0,0);
+		
 		if(hasFlag(SHAPEPAR.NEWLAYER))c.save();
 		PorterDuff.Mode xm=null;
 		if(hasFlag(XFERMODE.ADD))xm=PorterDuff.Mode.ADD;
@@ -382,7 +395,7 @@ public class Shape
 				fs(sp);
 			}
 			c.drawPath(pa,sp);
-			if(MainView.render!=null&&MainView.render.tmpShape==this)
+			/*if(MainView.render!=null&&MainView.render.tmpShape==this)
 				for(int i=1;i<pts.size();i++)
 				{
 					Point t=pts.get(i);
@@ -391,7 +404,7 @@ public class Shape
 					else tp.setColor(0xff000000);
 					c.drawText(Integer.toString(i),pf.x,pf.y,tp);
 					c.drawPoint(pf.x,pf.y,tp);
-				}
+				}*/
 		}
 		else if(hasFlag(TYPE.TEXT))
 		{
@@ -535,12 +548,12 @@ public class Shape
 		}
 		if(sweep.size()!=0)
 		{
-			Point p1=radial.get(0);
-			int[] c=new int[radial.size()-1];
+			Point p1=sweep.get(0);
+			int[] c=new int[sweep.size()-1];
 			float[] p=new float[c.length];
 			for(int i=0;i<c.length;i++)
 			{
-				Point f=radial.get(i+1);
+				Point f=sweep.get(i+1);
 				c[i]=f.x;
 				p[i]=(float)f.y/100f;
 			}
@@ -564,7 +577,7 @@ public class Shape
 				,s,PorterDuff.Mode.ADD);
 		return shader;
 	}
-	public static void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
+	public static final void Catmull_Rom(ArrayList<PointF> point, int cha,Path path)
 	{
 		if(cha==0)for(PointF p:point)path.lineTo(p.x,p.y);
 		else if (point.size()>1&&cha<10000)
@@ -590,7 +603,7 @@ public class Shape
 			path.lineTo(point.get(point.size() - 1).x, point.get(point.size() - 1).y);
 		}
 	}
-	public static class PathPoint extends Point
+	public static final class PathPoint extends Point
 	{
 		public byte type=0;//normal:0,turn:1,start:2
 		public PathPoint(int x,int y)

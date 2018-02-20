@@ -10,6 +10,21 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import com.yzrilyzr.icondesigner.Shape;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.sax.TransformerHandler;
+import javax.xml.transform.stream.StreamResult;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.ParserConfigurationException;
+import org.xml.sax.Attributes;
 
 public class VECfile
 {
@@ -18,7 +33,7 @@ public class VECfile
 	int backgcolor=0;
 	public CopyOnWriteArrayList<Shape> shapes=new CopyOnWriteArrayList<Shape>();
 	public Paint sp=new Paint();//形状
-	String name="",comm="",bgpath=null;
+	String name="",info="",bgpath=null;
 	public Bitmap front=null,back=null,front2=null;
 	Canvas can,can2;
 	public boolean antialias=false,dither=false,which=false,lock=false;
@@ -29,13 +44,113 @@ public class VECfile
 		init(width, height,dp);
 	}
 
+	public void setWidth(int width)
+	{
+		this.width = width;
+	}
+
+	public int getWidth()
+	{
+		return width;
+	}
+
+	public void setHeight(int height)
+	{
+		this.height = height;
+	}
+
+	public int getHeight()
+	{
+		return height;
+	}
+
+	public void setDp(float dp)
+	{
+		this.dp = dp;
+	}
+
+	public float getDp()
+	{
+		return dp;
+	}
+
+	public void setBackgcolor(int backgcolor)
+	{
+		this.backgcolor = backgcolor;
+	}
+
+	public int getBackgcolor()
+	{
+		return backgcolor;
+	}
+
+	public void setShapes(CopyOnWriteArrayList<Shape> shapes)
+	{
+		this.shapes = shapes;
+	}
+
+	public CopyOnWriteArrayList<Shape> getShapes()
+	{
+		return shapes;
+	}
+
+	public void setName(String name)
+	{
+		this.name = name;
+	}
+
+	public String getName()
+	{
+		return name;
+	}
+
+	public void setInfo(String info)
+	{
+		this.info = info;
+	}
+
+	public String getInfo()
+	{
+		return info;
+	}
+
+	public void setBgpath(String bgpath)
+	{
+		this.bgpath = bgpath;
+	}
+
+	public String getBgpath()
+	{
+		return bgpath;
+	}
+
+	public void setAntialias(boolean antialias)
+	{
+		this.antialias = antialias;
+	}
+
+	public boolean isAntialias()
+	{
+		return antialias;
+	}
+
+	public void setDither(boolean dither)
+	{
+		this.dither = dither;
+	}
+
+	public boolean isDither()
+	{
+		return dither;
+	}
+
 	public void loadoutTxtFile(String f)
 	{
 		try
 		{
 			PrintWriter os=new PrintWriter(new FileOutputStream(f));
 			os.println("VEC 版本:1");
-			os.println("文件名:"+name+";描述:"+comm);
+			os.println("文件名:"+name+";描述:"+info);
 			os.println("宽:"+width+";高:"+height+";精度:"+(int)(width/dp));
 			os.println("抗锯齿:"+antialias+";防抖动:"+dither);
 			os.println("背景色:"+Integer.toHexString(backgcolor));
@@ -164,7 +279,8 @@ public class VECfile
 			}
 		}
 	}
-	public void recycle(){
+	public void recycle()
+	{
 		if(back!=null)back.recycle();
 		if(front!=null)front.recycle();
 		if(front2!=null)front2.recycle();
@@ -246,7 +362,7 @@ public class VECfile
 			os.writeBytes("VEC");
 			os.writeByte(2);
 			os.writeUTF(name);
-			os.writeUTF(comm);
+			os.writeUTF(info);
 			os.writeInt(width);
 			os.writeInt(height);
 			os.writeBoolean(antialias);
@@ -314,7 +430,7 @@ public class VECfile
 		else if(h[3]==2)
 		{
 			v.name=os.readUTF();
-			v.comm=os.readUTF();
+			v.info=os.readUTF();
 			v.width=os.readInt();
 			v.height=os.readInt();
 			v.antialias=os.readBoolean();
@@ -361,14 +477,14 @@ public class VECfile
 					Point po=new Point();
 					po.x=os.readInt();
 					po.y=os.readInt();
-					s.linear.add(po);
+					s.radial.add(po);
 				}
 				for(int u=0;u<sw;u++)
 				{
 					Point po=new Point();
 					po.x=os.readInt();
 					po.y=os.readInt();
-					s.linear.add(po);
+					s.sweep.add(po);
 				}
 				v.shapes.add(s);
 			}
@@ -395,7 +511,7 @@ public class VECfile
 		else if(h[3]==1)
 		{
 			v.name=os.readUTF();
-			v.comm=os.readUTF();
+			v.info=os.readUTF();
 			v.width=os.readInt();
 			v.height=os.readInt();
 			v.antialias=os.readBoolean();
@@ -437,6 +553,245 @@ public class VECfile
 			return v;
 		}
 		else return null;
+	}
+	public static VECfile readXmlFromIs(InputStream is) throws SAXException, ParserConfigurationException, IOException
+	{
+		final VECfile v=new VECfile();
+		SAXParserFactory sf=SAXParserFactory.newInstance();
+		SAXParser sp=sf.newSAXParser();
+		DefaultHandler reader=new DefaultHandler(){
+			Shape tmp=null;
+			public void startElement(String uri,String localName,String qName,Attributes a) throws SAXException
+			{
+				if(a.getLength() >=0)
+				{
+					switch (qName)
+					{
+						case "VEC":
+							int version=Integer.parseInt(a.getValue("version"));
+							//if("VEC")throw new IllegalStateException("不支持的vec文件");
+							break;
+						case "Data":
+							v.name=a.getValue("name");
+							v.info=a.getValue("info");
+							v.width=Integer.parseInt(a.getValue("width"));
+							v.height=Integer.parseInt(a.getValue("height"));
+							v.antialias=Boolean.parseBoolean(a.getValue("antialias"));
+							v.dither=Boolean.parseBoolean(a.getValue("dither"));
+							v.backgcolor=Integer.parseInt(a.getValue("backgroundColor"));
+							v.dp=Float.parseFloat(a.getValue("dp"));
+							break;
+						case "BackgroundImg":
+							String p=a.getValue("path");
+							if(!"null".equals(p))v.bgpath=p;
+							break;
+						case "Shape":
+							tmp=new Shape(0);
+							break;
+						case "SData":
+							tmp.flag=Long.parseLong(a.getValue("flag"));
+							if(tmp.hasFlag(Shape.TYPE.TEXT))tmp.txt=a.getValue("text");
+							break;
+						case "Points":
+							tmp.pts.clear();
+							break;
+						case "P":
+							if(tmp.hasFlag(Shape.TYPE.PATH))
+							{
+								Shape.PathPoint po=new Shape.PathPoint();
+								po.x=Integer.parseInt(a.getValue("x"));
+								po.y=Integer.parseInt(a.getValue("y"));
+								String h=a.getValue("type");
+								if(h!=null)po.type=Byte.parseByte(h);
+								tmp.pts.add(po);
+							}
+							else
+							{
+								Point po=new Point();
+								po.x=Integer.parseInt(a.getValue("x"));
+								po.y=Integer.parseInt(a.getValue("y"));
+								tmp.pts.add(po);
+							}
+							break;
+						case "Params":
+							for(int u=0;u<8;u++)tmp.par[u]=Integer.parseInt(a.getValue("p"+u));
+							break;
+						case "Linear":
+							Point po=new Point();
+							po.x=Integer.parseInt(a.getValue("x"));
+							po.y=Integer.parseInt(a.getValue("y"));
+							tmp.linear.add(po);
+							break;
+						case "Radial":
+							po=new Point();
+							po.x=Integer.parseInt(a.getValue("x"));
+							po.y=Integer.parseInt(a.getValue("y"));
+							tmp.radial.add(po);
+							break;
+						case "Sweep":
+							po=new Point();
+							po.x=Integer.parseInt(a.getValue("x"));
+							po.y=Integer.parseInt(a.getValue("y"));
+							tmp.sweep.add(po);
+							break;
+						default:
+							break;
+					}
+				}
+			}
+			public void endElement(String uri,String localName,String qName) throws SAXException
+			{
+				switch (qName)
+				{
+					case "Shape":
+						v.addShape(tmp);
+						tmp=null;
+						break;
+				}
+			}
+		};
+		sp.parse(is,reader);
+		is.close();
+		v.init(v.width,v.height,v.dp);
+		return v;
+	}
+	public static VECfile readXml(String path)throws IllegalStateException,IOException, SAXException, ParserConfigurationException
+	{
+		return readXmlFromIs(new BufferedInputStream(new FileInputStream(path)));
+	}
+	public void saveXml(String path)
+	{
+		SAXTransformerFactory sf = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+		OutputStream in =null;
+		try
+		{
+			TransformerHandler handler = sf.newTransformerHandler();
+			Transformer transformer = handler.getTransformer();
+			transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
+			transformer.setOutputProperty(OutputKeys.ENCODING, "utf-8");
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			File file=new File(path);
+			if(!file.exists())
+			{
+				if(!file.createNewFile())
+				{
+					throw new FileNotFoundException("文件创建失败！");
+				}
+			}
+			in = new FileOutputStream(file);
+			Result result = new StreamResult(in);
+			handler.setResult(result);
+			handler.startDocument();
+			AttributesImpl a = new AttributesImpl();
+			a.addAttribute("","","version","","2");
+			handler.startElement("","","VEC",a);
+			a.clear();
+			a.addAttribute("","","name","",name);
+			a.addAttribute("","","info","",info);
+			a.addAttribute("","","width","",Integer.toString(width));
+			a.addAttribute("","","height","",Integer.toString(height));
+			a.addAttribute("","","antialias","",Boolean.toString(antialias));
+			a.addAttribute("","","dither","",Boolean.toString(dither));
+			a.addAttribute("","","backgroundColor","",Integer.toString(backgcolor));
+			a.addAttribute("","","dp","",Float.toString(dp));
+			handler.startElement("","","Data",a);
+			handler.endElement("","","Data");
+			a.clear();
+			a.addAttribute("","","path","",bgpath==null?"null":bgpath);
+			handler.startElement("","","BackgroundImg",a);
+			handler.endElement("","","BackgroundImg");
+			a.clear();
+			for(Shape s:shapes)
+			{
+				handler.startElement("","","Shape",a);
+				a.addAttribute("","","flag","",Long.toString(s.flag));
+				if(s.hasFlag(Shape.TYPE.TEXT))a.addAttribute("","","text","",s.txt);
+				handler.startElement("","","SData",a);
+				handler.endElement("","","SData");
+				a.clear();
+				handler.startElement("","","Points",a);
+				boolean bool=false;
+				if(s.hasFlag(Shape.TYPE.PATH))
+					for(Point po:s.pts)
+					{
+						a.addAttribute("","","x","",Integer.toString(po.x));
+						a.addAttribute("","","y","",Integer.toString(po.y));
+						if(bool)a.addAttribute("","","type","",Integer.toString(((Shape.PathPoint)po).type));
+						handler.startElement("","","P",a);
+						handler.endElement("","","P");
+						a.clear();
+						bool=true;
+					}
+				else 
+					for(Point po:s.pts)
+					{
+						a.addAttribute("","","x","",Integer.toString(po.x));
+						a.addAttribute("","","y","",Integer.toString(po.y));
+						handler.startElement("","","P",a);
+						handler.endElement("","","P");
+						a.clear();
+					}
+				handler.endElement("","","Points");
+
+				int f=0;
+				for(int po:s.par)a.addAttribute("","","p"+(f++),"",Integer.toString(po));
+				handler.startElement("","","Params",a);
+				handler.endElement("","","Params");
+				a.clear();
+				handler.startElement("","","Shader",a);
+				for(Point t:s.linear)
+				{
+					a.addAttribute("","","x","",Integer.toString(t.x));
+					a.addAttribute("","","y","",Integer.toString(t.y));
+					handler.startElement("","","Linear",a);
+					handler.endElement("","","Linear");
+					a.clear();
+				}
+				for(Point t:s.radial)
+				{
+					a.addAttribute("","","x","",Integer.toString(t.x));
+					a.addAttribute("","","y","",Integer.toString(t.y));
+					handler.startElement("","","Radial",a);
+					handler.endElement("","","Radial");
+					a.clear();
+				}
+				for(Point t:s.sweep)
+				{
+					a.addAttribute("","","x","",Integer.toString(t.x));
+					a.addAttribute("","","y","",Integer.toString(t.y));
+					handler.startElement("","","Sweep",a);
+					handler.endElement("","","Sweep");
+					a.clear();
+				}
+				handler.endElement("","","Shader");
+				handler.endElement("","","Shape");
+			}
+			handler.endElement("", "", "VEC");
+			handler.endDocument();
+		}
+		catch (TransformerConfigurationException e)
+		{
+			e.printStackTrace();
+		}
+		catch (SAXException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			try
+			{
+				in.close();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
 	}
 	public static class Builder
 	{
@@ -539,7 +894,7 @@ public class VECfile
 			VECfile v=new VECfile(this.width,this.height,this.dp,this.bgpath);
 			v.backgcolor=this.backgcolor;
 			v.name=this.name;
-			v.comm=this.comm;
+			v.info=this.comm;
 			v.antialias=this.antialias=false;
 			v.dither=this.dither;
 			return v;
