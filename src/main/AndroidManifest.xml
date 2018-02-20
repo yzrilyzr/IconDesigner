@@ -27,6 +27,8 @@
                 <data android:scheme="content"/>
                 <data android:pathPattern=".*\.vec"/>
                 <data android:pathPattern=".*\.VEC"/>
+				<data android:pathPattern=".*\.xml"/>
+                <data android:pathPattern=".*\.XML"/>
                 <data android:mimeType="*/*"/>
                 <data android:host="*"/>
             </intent-filter>

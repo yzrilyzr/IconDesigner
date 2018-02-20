@@ -36,10 +36,10 @@ public class MainView extends SurfaceView implements Callback
 	{
 		if(render!=null)
 			getContext()
-			.getSharedPreferences("path",getContext().MODE_PRIVATE)
-			.edit()
-			.putString("path",render.localFile.getAbsolutePath())
-			.commit();
+				.getSharedPreferences("path",getContext().MODE_PRIVATE)
+				.edit()
+				.putString("path",render.localFile.getAbsolutePath())
+				.commit();
 	}
 	@Override
 	public void surfaceChanged(SurfaceHolder p1, int p2, int p3, int p4)
@@ -56,8 +56,12 @@ public class MainView extends SurfaceView implements Callback
 		else render.surface=this;
 		try
 		{
-			if(MainActivity.file!=null){
-				render.vec=VECfile.readFile(MainActivity.file);
+			if(MainActivity.file!=null)
+			{
+				if(MainActivity.file.toLowerCase().endsWith(".vec"))
+					render.vec=VECfile.readFile(MainActivity.file);
+				else if(MainActivity.file.toLowerCase().endsWith(".xml"))
+					render.vec=VECfile.readXml(MainActivity.file);
 				render.initPosition();
 			}
 			MainActivity.file=null;
@@ -83,7 +87,8 @@ public class MainView extends SurfaceView implements Callback
         outAttrs.inputType = InputType.TYPE_CLASS_TEXT;
         return render;
     }
-	public String getStr(int id,Object... f){
+	public String getStr(int id,Object... f)
+	{
 		return getContext().getResources().getString(id,f);
 	}
 }
