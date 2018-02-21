@@ -167,12 +167,6 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			{
 				try
 				{
-					ByteArrayOutputStream os=new ByteArrayOutputStream();
-					PrintWriter ps=new PrintWriter(os);
-					e.printStackTrace(ps);
-					ps.flush();
-					ps.close();
-					toast("render:"+os.toString());
 					Thread.sleep(5000);
 				}
 				catch (Exception e2)

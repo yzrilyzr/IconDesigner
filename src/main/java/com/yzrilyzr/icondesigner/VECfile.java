@@ -25,6 +25,8 @@ import org.xml.sax.helpers.AttributesImpl;
 import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.ParserConfigurationException;
 import org.xml.sax.Attributes;
+import android.graphics.Color;
+import java.math.BigInteger;
 
 public class VECfile
 {
@@ -578,7 +580,7 @@ public class VECfile
 							v.height=Integer.parseInt(a.getValue("height"));
 							v.antialias=Boolean.parseBoolean(a.getValue("antialias"));
 							v.dither=Boolean.parseBoolean(a.getValue("dither"));
-							v.backgcolor=Integer.parseInt(a.getValue("backgroundColor"));
+							v.backgcolor=new BigInteger(a.getValue("backgroundColor"),16).intValue();
 							v.dp=Float.parseFloat(a.getValue("dp"));
 							break;
 						case "BackgroundImg":
@@ -587,7 +589,7 @@ public class VECfile
 							break;
 						case "Shape":
 							tmp=new Shape(0);
-							tmp.flag=Long.parseLong(a.getValue("flag"));
+							tmp.flag=Long.parseLong(a.getValue("flag"),2);
 							if(tmp.hasFlag(Shape.TYPE.TEXT))tmp.txt=a.getValue("text");
 							break;
 						case "Points":
@@ -612,23 +614,23 @@ public class VECfile
 							}
 							break;
 						case "Params":
-							for(int u=0;u<8;u++)tmp.par[u]=Integer.parseInt(a.getValue("p"+u));
+							for(int u=0;u<8;u++)tmp.par[u]=u==0||u==1||u==7?new BigInteger(a.getValue("p"+u),16).intValue():Integer.parseInt(a.getValue("p"+u));
 							break;
 						case "Linear":
 							Point po=new Point();
-							po.x=Integer.parseInt(a.getValue("x"));
+							po.x=tmp.linear.size()>=2?new BigInteger(a.getValue("x"),16).intValue():Integer.parseInt(a.getValue("x"));
 							po.y=Integer.parseInt(a.getValue("y"));
 							tmp.linear.add(po);
 							break;
 						case "Radial":
 							po=new Point();
-							po.x=Integer.parseInt(a.getValue("x"));
+							po.x=tmp.radial.size()>=2?new BigInteger(a.getValue("x"),16).intValue():Integer.parseInt(a.getValue("x"));
 							po.y=Integer.parseInt(a.getValue("y"));
 							tmp.radial.add(po);
 							break;
 						case "Sweep":
 							po=new Point();
-							po.x=Integer.parseInt(a.getValue("x"));
+							po.x=tmp.sweep.size()>=1?new BigInteger(a.getValue("x"),16).intValue():Integer.parseInt(a.getValue("x"));
 							po.y=Integer.parseInt(a.getValue("y"));
 							tmp.sweep.add(po);
 							break;
@@ -690,7 +692,7 @@ public class VECfile
 			a.addAttribute("","","height","",Integer.toString(height));
 			a.addAttribute("","","antialias","",Boolean.toString(antialias));
 			a.addAttribute("","","dither","",Boolean.toString(dither));
-			a.addAttribute("","","backgroundColor","",Integer.toString(backgcolor));
+			a.addAttribute("","","backgroundColor","",Integer.toHexString(backgcolor));
 			a.addAttribute("","","dp","",Float.toString(dp));
 			handler.startElement("","","Data",a);
 			handler.endElement("","","Data");
@@ -701,7 +703,7 @@ public class VECfile
 			a.clear();
 			for(Shape s:shapes)
 			{
-				a.addAttribute("","","flag","",Long.toString(s.flag));
+				a.addAttribute("","","flag","",Long.toBinaryString(s.flag));
 				if(s.hasFlag(Shape.TYPE.TEXT))a.addAttribute("","","text","",s.txt);
 				handler.startElement("","","Shape",a);
 				a.clear();
@@ -729,32 +731,38 @@ public class VECfile
 					}
 				handler.endElement("","","Points");
 
-				int f=0;
-				for(int po:s.par)a.addAttribute("","","p"+(f++),"",Integer.toString(po));
+				int f=-1;
+				for(int po:s.par)a.addAttribute("","","p"+(++f),"",f==0||f==1||f==7?Integer.toHexString(po):Integer.toString(po));
 				handler.startElement("","","Params",a);
 				handler.endElement("","","Params");
 				a.clear();
 				handler.startElement("","","Shader",a);
+				f=0;
 				for(Point t:s.linear)
 				{
-					a.addAttribute("","","x","",Integer.toString(t.x));
+					if(f<2)a.addAttribute("","","x","",Integer.toString(t.x));
+					else a.addAttribute("","","x","",Integer.toHexString(t.x));
 					a.addAttribute("","","y","",Integer.toString(t.y));
 					handler.startElement("","","Linear",a);
 					handler.endElement("","","Linear");
 					a.clear();
+					f++;
 				}
+				f=0;
 				for(Point t:s.radial)
 				{
-					a.addAttribute("","","x","",Integer.toString(t.x));
-					a.addAttribute("","","y","",Integer.toString(t.y));
+					if(f<2)a.addAttribute("","","x","",Integer.toString(t.x));
+					else a.addAttribute("","","x","",Integer.toHexString(t.x));
 					handler.startElement("","","Radial",a);
 					handler.endElement("","","Radial");
 					a.clear();
+					f++;
 				}
+				f=0;
 				for(Point t:s.sweep)
 				{
-					a.addAttribute("","","x","",Integer.toString(t.x));
-					a.addAttribute("","","y","",Integer.toString(t.y));
+					if(f<1)a.addAttribute("","","x","",Integer.toString(t.x));
+					else a.addAttribute("","","x","",Integer.toHexString(t.x));
 					handler.startElement("","","Sweep",a);
 					handler.endElement("","","Sweep");
 					a.clear();

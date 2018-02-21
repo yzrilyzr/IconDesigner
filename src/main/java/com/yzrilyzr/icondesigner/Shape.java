@@ -395,7 +395,7 @@ public final class Shape
 				fs(sp);
 			}
 			c.drawPath(pa,sp);
-			/*if(MainView.render!=null&&MainView.render.tmpShape==this)
+			if(MainView.render!=null&&MainView.render.tmpShape==this)
 				for(int i=1;i<pts.size();i++)
 				{
 					Point t=pts.get(i);
@@ -404,7 +404,7 @@ public final class Shape
 					else tp.setColor(0xff000000);
 					c.drawText(Integer.toString(i),pf.x,pf.y,tp);
 					c.drawPoint(pf.x,pf.y,tp);
-				}*/
+				}
 		}
 		else if(hasFlag(TYPE.TEXT))
 		{
