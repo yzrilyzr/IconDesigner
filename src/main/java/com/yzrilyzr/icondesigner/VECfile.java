@@ -753,6 +753,7 @@ public class VECfile
 				{
 					if(f<2)a.addAttribute("","","x","",Integer.toString(t.x));
 					else a.addAttribute("","","x","",Integer.toHexString(t.x));
+					a.addAttribute("","","y","",Integer.toString(t.y));
 					handler.startElement("","","Radial",a);
 					handler.endElement("","","Radial");
 					a.clear();
@@ -763,9 +764,11 @@ public class VECfile
 				{
 					if(f<1)a.addAttribute("","","x","",Integer.toString(t.x));
 					else a.addAttribute("","","x","",Integer.toHexString(t.x));
+					a.addAttribute("","","y","",Integer.toString(t.y));
 					handler.startElement("","","Sweep",a);
 					handler.endElement("","","Sweep");
 					a.clear();
+					f++;
 				}
 				handler.endElement("","","Shader");
 				handler.endElement("","","Shape");
