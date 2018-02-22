@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Menu extends MView
 {
-	private Paint paint;
+	Paint paint;
 	public CopyOnWriteArrayList<MView> views=new CopyOnWriteArrayList<MView>();
 	public boolean show=false;
 	private MView cur;

@@ -1,13 +1,6 @@
 package com.yzrilyzr.icondesigner;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Shader;
-import android.graphics.SweepGradient;
-import android.graphics.LinearGradient;
-import android.graphics.Color;
-import android.graphics.RectF;
-import android.widget.Toast;
-import android.os.Handler;
+import android.graphics.*;
+
 import android.view.MotionEvent;
 
 public class ColorPicker extends MView implements SeekBar.SeekBarEvent
@@ -20,6 +13,7 @@ public class ColorPicker extends MView implements SeekBar.SeekBarEvent
 	private float[] hsv=new float[]{0,0,0};
 	private ColorView cv;
 	private VECfile.Builder builder=new VECfile.Builder();
+	private Point poi;
 	public ColorPicker(float x,float y,float w,float h)
 	{
 		super(x,y,w,h);
@@ -31,12 +25,20 @@ public class ColorPicker extends MView implements SeekBar.SeekBarEvent
 	{
 		cv=v;
 		builder=null;
+		poi=null;
 		setColor(cColor=cv.color);
 	}
 	public void setIColor(VECfile.Builder b){
 		this.builder=b;
 		cv=null;
+		poi=null;
 		setColor(cColor=b.backgcolor);
+	}
+	public void setIColor(Point shader){
+		builder=null;
+		cv=null;
+		poi=shader;
+		setColor(cColor=poi.x);
 	}
 	private void setColor(int color)
 	{
@@ -105,6 +107,7 @@ public class ColorPicker extends MView implements SeekBar.SeekBarEvent
 					if(x-centerX()>0)
 						if(cv!=null)cv.color=mColor;
 						else if(builder!=null)builder.setBackgcolor(mColor);
+						else if(poi!=null)poi.x=mColor;
 					((Menu)parent).show=false;
 				}
 			}

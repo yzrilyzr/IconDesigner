@@ -5,6 +5,7 @@ import android.graphics.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class Shape
 {
@@ -21,9 +22,9 @@ public final class Shape
 	};
 	//0:color,1:strokecolor,2:miter,3:strokewidth
 	//4:shadowD.x,5:.y,6:shadowR,7:shadowcolor
-	public ArrayList<Point> linear=new ArrayList<Point>();
-	public ArrayList<Point> radial=new ArrayList<Point>();
-	public ArrayList<Point> sweep=new ArrayList<Point>();
+	public CopyOnWriteArrayList<Point> linear=new CopyOnWriteArrayList<Point>();
+	public CopyOnWriteArrayList<Point> radial=new CopyOnWriteArrayList<Point>();
+	public CopyOnWriteArrayList<Point> sweep=new CopyOnWriteArrayList<Point>();
 	public long flag=0;
 	public String txt="";
 	public void setColor(int color){

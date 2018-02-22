@@ -59,6 +59,8 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 	public SurfaceView surface;
 	public Toast toast;
 	public int isTutorial=0;
+
+	private int bs;
 	public RenderThread(SurfaceView surface)
 	{
 		this.surface = surface;
@@ -412,7 +414,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 		initPosition();
 		mview.clear();
 		final Button[] bu=new Button[27];
-		final int bs=MView.dip(surface.getWidth()/9);
+		bs=MView.dip(surface.getWidth()/9);
 		final Menu[] me=new Menu[26];
 		Button.Event ev=new Button.Event(){
 			@Override
@@ -766,6 +768,25 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									if(i==6||i==7)tmpPoint=tmpShape.linear.get(i-6);
 									else if(i==8||i==9)tmpPoint=tmpShape.radial.get(i-8);
 									else if(i==10)tmpPoint=tmpShape.sweep.get(0);
+									else if(i>10&&i<14){
+										for(int ii=20;ii<23;ii++)
+											((List)m.views.get(ii)).views.clear();
+										int k=-1;
+										float l=m.views.get(20).left;
+										float w=m.views.get(20).width();
+										float h=m.views.get(20).height()/8;
+										for(Point p:tmpShape.linear)
+											if(++k>=2)((List)m.views.get(20)).addView(new ShaderEntry(MView.dip(l),0,MView.dip(w),MView.dip(h),k,p,0,me[18]));
+										k=-1;
+										for(Point p:tmpShape.radial)
+											if(++k>=2)((List)m.views.get(21)).addView(new ShaderEntry(MView.dip(l),0,MView.dip(w),MView.dip(h),k,p,1,me[18]));
+										k=-1;
+										for(Point p:tmpShape.sweep)
+											if(++k>=1)((List)m.views.get(22)).addView(new ShaderEntry(MView.dip(l),0,MView.dip(w),MView.dip(h),k,p,2,me[18]));
+										for(int ii=20;ii<23;ii++)
+											((List)m.views.get(ii)).measure();	
+										showMenu((List)m.views.get(i+9));
+									}
 									else if(i>=14&&i<=16)
 									{
 										tmpShape.setFlag(Shape.TILEMODE.L_CLAMP*(long)Math.pow(2,i-14),Shape.TILEMODE.L_ALL);
@@ -824,11 +845,14 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 								}
 								else if(j==17)
 								{
-									if(tmpPoint!=null)
-										if(i==0)cx=--tmpPoint.x;
-										else if(i==1)cy=--tmpPoint.y;
-										else if(i==2)cx=++tmpPoint.x;
-										else if(i==3)cy=++tmpPoint.y;
+									if(tmpPoint!=null){
+										if(i==0)--tmpPoint.x;
+										else if(i==1)--tmpPoint.y;
+										else if(i==2)++tmpPoint.x;
+										else if(i==3)++tmpPoint.y;
+										cx=tmpPoint.x;
+										cy=tmpPoint.y;
+									}
 									if(i==4)me[17].show=false;
 								}
 								else if(j==25)
@@ -893,6 +917,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 									 }
 									 else*/
 									vec.saveFile(f);
+									toast("保存成功");
 									me[20].show=false;
 								}
 								else if(j==23){
@@ -910,6 +935,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 												@Override
 												public void onScanCompleted(String path, Uri uri)
 												{
+													toast("扫描完毕，已加入相册");
 												}
 											});
 										me[23].show=false;
@@ -924,6 +950,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										 }
 										 else*/
 										vec.loadoutTxtFile(f);
+										toast("导出成功");
 										me[23].show=false;
 									}
 									else if(i==4)
@@ -936,6 +963,7 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 										 }
 										 else*/
 										vec.saveXml(f);
+										toast("导出成功");
 										me[23].show=false;
 									}
 								}
@@ -1176,7 +1204,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 					 new Button(bs*8,bs*12,bs,bs,"重复",sv),
 					 new Button(bs*6,bs*13,bs,bs,"边缘",sv),
 					 new Button(bs*7,bs*13,bs,bs,"镜像",sv),
-					 new Button(bs*8,bs*13,bs,bs,"重复",sv)
+					 new Button(bs*8,bs*13,bs,bs,"重复",sv),
+					 new List(bs,bs*4,bs*7,bs*8),
+					 new List(bs,bs*4,bs*7,bs*8),
+					 new List(bs,bs*4,bs*7,bs*8)
 					 ),
 			new Menu(bs,bs*12,bs*2,bs*3,
 					 new Button(bs,bs*12,bs,bs,"复制",sv),
@@ -1335,6 +1366,10 @@ public class RenderThread extends Thread implements InputConnection,Thread.Uncau
 			((SeekBar)m.views.get(3)).setProgress(tmpShape.linear.size()==0?0:1);
 			((SeekBar)m.views.get(4)).setProgress(tmpShape.radial.size()==0?0:1);
 			((SeekBar)m.views.get(5)).setProgress(tmpShape.sweep.size()==0?0:1);
+			if(!m.show){
+				for(int i=20;i<23;i++)
+				((List)m.views.get(i)).show=false;
+			}
 		}
 	}
 	public void saveUndo()
