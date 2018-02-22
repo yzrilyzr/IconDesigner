@@ -32,6 +32,7 @@ public class ShaderEntry extends Menu implements Button.Event,FloatPicker.FloatP
 		addView(col,par,del,addup,adddown,up,down);
 		show=true;
 		picker=new FloatPicker(x+w/2,y+h,w/2,this);
+		picker.setValue((float)sh.y/100f);
 	}
 	@Override
 	public void onChange(FloatPicker p, float f)
