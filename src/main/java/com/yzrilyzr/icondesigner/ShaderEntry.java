@@ -7,12 +7,13 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ShaderEntry extends Menu implements Button.Event
+public class ShaderEntry extends Menu implements Button.Event,FloatPicker.FloatPickerEvent
 {
 	Point sh;
 	int index,type;
 	Menu colorp;
 	Button up,down,addup,adddown,col,del,par;
+	FloatPicker picker;
 	public ShaderEntry(float x,float y,float w,float h,int ind,Point sh,int type,Menu colorp)
 	{
 		super(x,y,w,h);
@@ -30,6 +31,13 @@ public class ShaderEntry extends Menu implements Button.Event
 		col.color=sh.x;
 		addView(col,par,del,addup,adddown,up,down);
 		show=true;
+		picker=new FloatPicker(x+w/2,y+h,w/2,this);
+	}
+	@Override
+	public void onChange(FloatPicker p, float f)
+	{
+		sh.y=(int)(f*100f);
+		par.txt=sh.y+"%";
 	}
 	@Override
 	public void e(Button b)
@@ -41,7 +49,9 @@ public class ShaderEntry extends Menu implements Button.Event
 				((ColorPicker)colorp.views.get(0)).setIColor(sh);
 			}
 			else if(b==par){
-				
+				List list=(List) parent;
+				if(list.views.contains(picker))list.views.remove(picker);
+				else list.views.add(index-(type==2?0:1),picker);
 			}
 			else
 			{

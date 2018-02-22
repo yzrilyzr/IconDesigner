@@ -9,7 +9,7 @@ public class List extends Menu
 {
 	private Paint p;
 	private float yy=0,dy=0,vy=0,ht=0,lyy;
-	private boolean touch=false,isScroll=false;
+	private boolean touch=false,isScroll=false,onPicker=false;
 	private int scralpha=0;
 	public List(float x,float y,float w,float h,MView... m)
 	{
@@ -30,7 +30,8 @@ public class List extends Menu
 	@Override
 	public void onDraw(Canvas c)
 	{
-		if(!show){
+		if(!show)
+		{
 			vy=0;
 			return;
 		}
@@ -53,7 +54,8 @@ public class List extends Menu
 		for(MView v:views)
 		{
 			float h=v.height();
-			if(y+h>top&&y<bottom){
+			if(y+h>top&&y<bottom)
+			{
 				v.top=y;
 				v.bottom=y+h;
 				v.onDraw(c);
@@ -77,12 +79,17 @@ public class List extends Menu
 		scralpha=0;
 		float y=e.getY();
 		int a=e.getAction();
-		if(!isScroll)super.onTouchEvent(e);
+		if(!isScroll||onPicker){
+			super.onTouchEvent(e);
+			if(onPicker)return;
+		}
 		if(a==MotionEvent.ACTION_DOWN)
 		{
 			touch=true;
 			lyy=yy;
 			dy=y;
+			for(MView v:views)
+				if(v instanceof FloatPicker&&v.contains(e.getX(),y))onPicker=true;
 		}
 		else if(a==MotionEvent.ACTION_MOVE)
 		{
@@ -95,6 +102,7 @@ public class List extends Menu
 		{
 			touch=false;
 			isScroll=false;
+			onPicker=false;
 		}
 	}
 }
